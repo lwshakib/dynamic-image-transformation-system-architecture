@@ -5,9 +5,19 @@ import { env } from './config/env';
 import { postgresService } from './services/postgres.service';
 import { s3Service } from './services/s3.service';
 import { transformationService } from './services/transformation.service';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { Readable } from 'stream';
 
 const app = express();
 const port = env.PORT;
+
+const s3Client = new S3Client({
+    region: env.AWS_REGION,
+    credentials: {
+      accessKeyId: env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+    },
+});
 
 // Middleware
 app.use(cors());
@@ -37,8 +47,9 @@ app.get('/health', async (req, res) => {
 
 /**
  * GET /cdn/*
- * High-performance transformation gateway (Simulating Lambda@Edge or Origin Request)
- * Example: /cdn/uploads/logo.png?w=200&h=200&f=webp
+ * Streamed transformation gateway. 
+ * By streaming (instead of redirecting), the browser URL stays as the CDN URL, 
+ * allowing you to manually add and test queries like ?w=100 in the address bar.
  */
 app.get('/cdn/:key(*)', async (req, res) => {
     try {
@@ -50,17 +61,27 @@ app.get('/cdn/:key(*)', async (req, res) => {
         const { w, h, f } = TransformParamsSchema.parse(req.query);
         const cacheKey = await transformationService.transformImage({ key, w, h, f });
         
-        // Generate a pre-signed URL for the cached asset
-        const url = await s3Service.getDownloadUrl(cacheKey, true);
-        
-        // Redirect to the S3 URL (similar to Lambda@Edge or Origin Response)
-        res.redirect(302, url);
+        // 1. Fetch the cached/transformed image from the transformed bucket
+        const command = new GetObjectCommand({
+            Bucket: env.AWS_BUCKET_NAME_TRANSFORMED,
+            Key: cacheKey,
+        });
+        const response = await s3Client.send(command);
+
+        // 2. Stream the image back to the client
+        if (response.Body) {
+            res.setHeader('Content-Type', response.ContentType || 'image/webp');
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+            (response.Body as Readable).pipe(res);
+        } else {
+            res.status(404).json({ error: 'Transformed image not found' });
+        }
     } catch (error) {
         if (error instanceof z.ZodError) {
             return res.status(400).json({ error: error.issues });
         }
         console.error('CDN Proxy error:', error);
-        res.status(500).json({ error: 'Failed to transform image' });
+        res.status(500).json({ error: 'Failed to stream/transform image' });
     }
 });
 
@@ -68,13 +89,11 @@ app.get('/cdn/:key(*)', async (req, res) => {
 app.get('/images', async (req, res) => {
     try {
         const result = await postgresService.getAllImages();
-        const imagesWithSignedUrls = await Promise.all(
-          result.rows.map(async (image) => ({
+        const imagesWithSignedUrls = result.rows.map((image) => ({
             ...image,
-            // Provide the dynamic transformation URL as the primary access point
-            url: `${process.env.API_URL || env.DATABASE_URL ? 'http://localhost:' + port : ''}/cdn/${image.key}`,
-          }))
-        );
+            // Point to our local CDN proxy
+            url: `http://localhost:${port}/cdn/${image.key}`,
+        }));
         res.json(imagesWithSignedUrls);
     } catch (error) {
         console.error('Error fetching images:', error);
