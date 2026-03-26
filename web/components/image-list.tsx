@@ -1,17 +1,14 @@
 "use client"
 
 import React from 'react'
-import { Trash2, ImageIcon } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 
 interface UploadedImage {
   id: string;
   name: string;
-  url: string;
-  size: string;
-  type: string;
-  status: 'ready' | 'processing' | 'failed';
+  url: string; // The CDN URL (e.g. /cdn/uploads/...)
+  key: string;
 }
 
 interface ImageListProps {
@@ -22,38 +19,46 @@ interface ImageListProps {
 export function ImageList({ images, onDelete }: ImageListProps) {
   if (images.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center rounded-lg border border-dashed border-muted-foreground/10 bg-card/50">
-        <p className="text-sm text-muted-foreground">No images uploaded yet</p>
+      <div className="flex flex-col items-center justify-center p-8 text-center rounded-lg border border-dashed text-muted-foreground/50">
+        <p className="text-sm">No assets found.</p>
       </div>
     )
   }
 
   return (
-    <div className="mt-8 space-y-4">
+    <div className="space-y-2">
       {images.map((image) => (
-        <div key={image.id} className="flex items-center justify-between p-4 rounded-lg bg-card border border-muted-foreground/10 group">
+        <div key={image.id} className="flex items-center justify-between p-3 rounded-md hover:bg-muted/50 transition-colors group">
           <div className="flex items-center gap-4 min-w-0">
-             <div className="w-12 h-12 rounded-md overflow-hidden bg-muted/20 shrink-0">
+             <a 
+                href={image.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-sm overflow-hidden bg-muted shrink-0"
+             >
                 <img src={image.url} alt={image.name} className="w-full h-full object-cover" />
-             </div>
-             <div className="flex flex-col min-w-0">
-                <p className="text-sm font-medium truncate max-w-[200px] md:max-w-md">{image.name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-muted-foreground">{image.size}</span>
-                    <Badge variant="outline" className="text-[10px] px-1 py-0 border-muted-foreground/20">
-                        {image.type.split('/')[1].toUpperCase()}
-                    </Badge>
-                </div>
-             </div>
+             </a>
+
+             <a 
+                href={image.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm font-medium truncate hover:underline"
+             >
+                {image.name}
+             </a>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => onDelete(image.id)}
-            className="w-9 h-9 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive text-muted-foreground shrink-0"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => onDelete(image.id)}
+                className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+            >
+                <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       ))}
     </div>

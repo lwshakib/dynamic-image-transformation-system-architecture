@@ -7,19 +7,30 @@
     "dev": "bun run --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun --minify",
     "start": "bun run dist/index.js",
+    "cloud-setup": "bun run setup-db && bun run setup-buckets && bun run deploy-lambda && bun run setup-cloudfront",
+    "reset-setup": "bun run scripts/reset-setup.ts",
     "setup-buckets": "bun run scripts/setup-buckets.ts",
-    "setup-db": "bun run scripts/setup-db.ts"
+    "setup-db": "bun run scripts/setup-db.ts",
+    "deploy-lambda": "bun run scripts/deploy-lambda.ts",
+    "setup-cloudfront": "bun run scripts/setup-cloudfront.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-cloudfront": "^3.1017.0",
+    "@aws-sdk/client-iam": "^3.1017.0",
+    "@aws-sdk/client-lambda": "^3.1017.0",
     "@aws-sdk/client-s3": "^3.1017.0",
     "@aws-sdk/s3-request-presigner": "^3.1017.0",
+    "@types/archiver": "^7.0.0",
+    "archiver": "^7.0.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "pg": "^8.20.0",
+    "sharp": "^0.34.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.161",
     "@types/bun": "latest",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",

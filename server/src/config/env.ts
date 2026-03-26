@@ -2,8 +2,8 @@ import { z } from 'zod';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env
-dotenv.config();
+// Parse .env manually if necessary (especially for scripts)
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
@@ -16,16 +16,13 @@ const envSchema = z.object({
   AWS_BUCKET_NAME_IMAGES: z.string().min(1),
   AWS_BUCKET_NAME_TRANSFORMED: z.string().min(1),
   
+  // Lambda Optimization
+  AWS_LAMBDA_ROLE_ARN: z.string().optional(), // Optional for local dev/proxy
+  
   // Database Configuration
   DATABASE_URL: z.string().url(),
 });
 
-const parsed = envSchema.safeParse(process.env);
+export const env = envSchema.parse(process.env);
 
-if (!parsed.success) {
-  console.error('❌ Invalid environment variables:', parsed.error.flatten().fieldErrors);
-  process.exit(1);
-}
-
-export const env = parsed.data;
 export type Env = z.infer<typeof envSchema>;

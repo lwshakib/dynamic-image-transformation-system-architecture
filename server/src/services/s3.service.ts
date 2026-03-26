@@ -26,9 +26,9 @@ export const s3Service = {
     return { uploadUrl, publicUrl, key };
   },
 
-  async getDownloadUrl(key: string) {
+  async getDownloadUrl(key: string, isTransformed: boolean = false) {
     const command = new GetObjectCommand({
-      Bucket: env.AWS_BUCKET_NAME_IMAGES,
+      Bucket: isTransformed ? env.AWS_BUCKET_NAME_TRANSFORMED : env.AWS_BUCKET_NAME_IMAGES,
       Key: key,
     });
     // Generate a pre-signed URL that expires in 1 hour (3600 seconds)

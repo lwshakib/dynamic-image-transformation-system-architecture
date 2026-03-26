@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { env } from './config/env';
 import { postgresService } from './services/postgres.service';
 import { s3Service } from './services/s3.service';
+import { transformationService } from './services/transformation.service';
 
 const app = express();
 const port = env.PORT;
@@ -18,6 +19,12 @@ const PresignedUrlSchema = z.object({
   contentType: z.string().startsWith('image/'),
 });
 
+const TransformParamsSchema = z.object({
+  w: z.string().optional().transform(v => v ? parseInt(v) : undefined),
+  h: z.string().optional().transform(v => v ? parseInt(v) : undefined),
+  f: z.string().optional(),
+});
+
 // Routes
 app.get('/health', async (req, res) => {
     try {
@@ -28,20 +35,46 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// GET /images - List all images from DB with 1-hour pre-signed URLs
+/**
+ * GET /cdn/*
+ * High-performance transformation gateway (Simulating Lambda@Edge or Origin Request)
+ * Example: /cdn/uploads/logo.png?w=200&h=200&f=webp
+ */
+app.get('/cdn/:key(*)', async (req, res) => {
+    try {
+        const { key } = req.params as any;
+        if (!key) {
+            return res.status(400).json({ error: 'Missing image key' });
+        }
+
+        const { w, h, f } = TransformParamsSchema.parse(req.query);
+        const cacheKey = await transformationService.transformImage({ key, w, h, f });
+        
+        // Generate a pre-signed URL for the cached asset
+        const url = await s3Service.getDownloadUrl(cacheKey, true);
+        
+        // Redirect to the S3 URL (similar to Lambda@Edge or Origin Response)
+        res.redirect(302, url);
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ error: error.issues });
+        }
+        console.error('CDN Proxy error:', error);
+        res.status(500).json({ error: 'Failed to transform image' });
+    }
+});
+
+// GET /images - List all base images
 app.get('/images', async (req, res) => {
     try {
         const result = await postgresService.getAllImages();
-        
-        // Map through images and generate fresh pre-signed GET URLs (1 hour expiry)
         const imagesWithSignedUrls = await Promise.all(
           result.rows.map(async (image) => ({
             ...image,
-            // Replace the static URL with a dynamic pre-signed URL
-            url: await s3Service.getDownloadUrl(image.key),
+            // Provide the dynamic transformation URL as the primary access point
+            url: `${process.env.API_URL || env.DATABASE_URL ? 'http://localhost:' + port : ''}/cdn/${image.key}`,
           }))
         );
-
         res.json(imagesWithSignedUrls);
     } catch (error) {
         console.error('Error fetching images:', error);
@@ -64,7 +97,7 @@ app.post('/images/presigned-url', async (req, res) => {
   }
 });
 
-// POST /images/confirm - Call this after successful S3 upload
+// POST /images/confirm - Save image metadata to DB
 app.post('/images/confirm', async (req, res) => {
     try {
         const { key, name, type, size, url } = req.body;
@@ -80,19 +113,12 @@ app.post('/images/confirm', async (req, res) => {
 app.delete('/images/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // 1. Get image info from DB
     const image = await postgresService.getImageById(id);
     if (!image) {
         return res.status(404).json({ error: 'Image not found' });
     }
-    
-    // 2. Delete from S3
     await s3Service.deleteFile(image.key);
-
-    // 3. Delete from DB
     await postgresService.deleteImageById(id);
-
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
     console.error('Error deleting image:', error);

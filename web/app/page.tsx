@@ -10,6 +10,7 @@ interface UploadedImage {
   id: string;
   name: string;
   url: string;
+  key: string;
   size: string;
   type: string;
   status: 'ready' | 'processing' | 'failed';
@@ -50,22 +51,25 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen container mx-auto p-4 md:p-16 max-w-4xl">
-      <div className="space-y-12">
-        <section>
-            <h1 className="text-2xl font-bold tracking-tight mb-8">Image Storage</h1>
-            <ImageUploader onSuccess={fetchImages} />
-        </section>
+    <main className="min-h-screen container mx-auto p-4 md:p-16 max-w-3xl space-y-12">
+      <header className="space-y-2 border-b pb-6">
+          <h1 className="text-2xl font-bold tracking-tight">Image Transformation</h1>
+          <p className="text-sm text-muted-foreground">Upload and manage your assets on S3.</p>
+      </header>
 
-        <section>
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Uploaded Files</h2>
-                {isLoading && <span className="text-xs text-muted-foreground animate-pulse">Refreshing...</span>}
-            </div>
-            <ImageList images={images} onDelete={handleDelete} />
-        </section>
-      </div>
-      <Toaster />
+      <section className="space-y-4">
+          <ImageUploader onSuccess={fetchImages} />
+      </section>
+
+      <section className="space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold tracking-tight">Gallery</h2>
+              {isLoading && <span className="text-xs text-muted-foreground animate-pulse">Syncing...</span>}
+          </div>
+          <ImageList images={images} onDelete={handleDelete} />
+      </section>
+
+      <Toaster position="bottom-right" richColors theme="dark" />
     </main>
   );
 }
