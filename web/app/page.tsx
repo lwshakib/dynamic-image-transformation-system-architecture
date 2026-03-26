@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { ImageUploader } from '@/components/image-uploader'
 import { ImageList } from '@/components/image-list'
-import { Toaster } from 'sonner'
-import { toast } from 'sonner'
+import { Toaster, toast } from 'sonner'
+import axios from 'axios'
 
 interface UploadedImage {
   id: string;
@@ -16,41 +16,37 @@ interface UploadedImage {
 }
 
 export default function Home() {
-  const [images, setImages] = useState<UploadedImage[]>([
-    {
-      id: "1",
-      name: "landscape-sample.jpg",
-      url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80",
-      size: "1.2 MB",
-      type: "image/jpeg",
-      status: "ready"
-    },
-    {
-        id: "2",
-        name: "product-shot.png",
-        url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80",
-        size: "2.4 MB",
-        type: "image/png",
-        status: "ready"
+  const [images, setImages] = useState<UploadedImage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchImages = useCallback(async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      setIsLoading(true);
+      const { data } = await axios.get(`${API_URL}/images`);
+      setImages(data);
+    } catch (error) {
+      console.error('Failed to fetch images:', error);
+      toast.error("Failed to load images from server.");
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  }, []);
 
-  const handleUpload = (file: File) => {
-    const newImage: UploadedImage = {
-        id: Math.random().toString(36).substring(7),
-        name: file.name,
-        url: URL.createObjectURL(file), // Local URL for demo
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        type: file.type,
-        status: 'ready'
-    };
-    setImages(prev => [newImage, ...prev]);
-    toast.success("Image uploaded!");
-  };
+  useEffect(() => {
+    fetchImages();
+  }, [fetchImages]);
 
-  const handleDelete = (id: string) => {
-    setImages(prev => prev.filter(img => img.id !== id));
-    toast.info("Image deleted.");
+  const handleDelete = async (id: string) => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      await axios.delete(`${API_URL}/images/${id}`);
+      setImages(prev => prev.filter(img => img.id !== id));
+      toast.info("Image deleted.");
+    } catch (error) {
+      console.error('Delete failed:', error);
+      toast.error("Failed to delete image.");
+    }
   };
 
   return (
@@ -58,11 +54,14 @@ export default function Home() {
       <div className="space-y-12">
         <section>
             <h1 className="text-2xl font-bold tracking-tight mb-8">Image Storage</h1>
-            <ImageUploader onUpload={handleUpload} />
+            <ImageUploader onSuccess={fetchImages} />
         </section>
 
         <section>
-            <h2 className="text-xl font-semibold mb-6">Uploaded Files</h2>
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">Uploaded Files</h2>
+                {isLoading && <span className="text-xs text-muted-foreground animate-pulse">Refreshing...</span>}
+            </div>
             <ImageList images={images} onDelete={handleDelete} />
         </section>
       </div>
