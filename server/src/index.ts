@@ -19,15 +19,30 @@ const PresignedUrlSchema = z.object({
 });
 
 // Routes
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
+app.get('/health', async (req, res) => {
+    try {
+        await postgresService.query('SELECT 1');
+        res.json({ status: 'ok', database: 'connected' });
+    } catch (err) {
+        res.status(500).json({ status: 'error', database: 'disconnected' });
+    }
 });
 
-// GET /images - List all images from DB
+// GET /images - List all images from DB with 1-hour pre-signed URLs
 app.get('/images', async (req, res) => {
     try {
         const result = await postgresService.getAllImages();
-        res.json(result.rows);
+        
+        // Map through images and generate fresh pre-signed GET URLs (1 hour expiry)
+        const imagesWithSignedUrls = await Promise.all(
+          result.rows.map(async (image) => ({
+            ...image,
+            // Replace the static URL with a dynamic pre-signed URL
+            url: await s3Service.getDownloadUrl(image.key),
+          }))
+        );
+
+        res.json(imagesWithSignedUrls);
     } catch (error) {
         console.error('Error fetching images:', error);
         res.status(500).json({ error: 'Failed to fetch images' });
