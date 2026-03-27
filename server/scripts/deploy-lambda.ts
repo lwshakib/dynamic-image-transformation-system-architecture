@@ -18,6 +18,7 @@ import {
 import fs from "fs";
 import path from "path";
 import archiver from "archiver";
+import { execSync } from "child_process";
 import { env } from "../src/config/env";
 
 /**
@@ -47,15 +48,27 @@ function updateEnvFile(key: string, value: string) {
     }
 }
 
+async function buildLambda() {
+    const projectRoot = path.join(__dirname, "..");
+    console.log(`\x1b[36mCalling Lambda build automation...\x1b[0m`);
+    execSync(`bun run scripts/build-lambda.ts`, {
+        cwd: projectRoot,
+        stdio: "inherit"
+    });
+}
+
 async function createZip() {
     return new Promise<Buffer>((resolve, reject) => {
+        const buildDir = path.join(__dirname, "../lambda-build");
         const chunks: Buffer[] = [];
         const archive = archiver('zip', { zlib: { level: 9 } });
+        
         archive.on('data', (chunk) => chunks.push(chunk));
         archive.on('end', () => resolve(Buffer.concat(chunks)));
         archive.on('error', (err) => reject(err));
-        // Zip the contents of lambda-build (pre-bundled with Linux sharp)
-        archive.directory('lambda-build/', false);
+        
+        // Zip the contents of lambda-build (now contains bundled index.js and node_modules/sharp)
+        archive.directory(buildDir, false);
         archive.finalize();
     });
 }
@@ -156,6 +169,7 @@ async function ensureFunctionUrl() {
 async function run() {
     console.log(`\n\x1b[35m\x1b[1m=== AWS Lambda Deployment CLI ===\x1b[0m`);
     try {
+        await buildLambda();
         const roleArn = await getOrCreateRole();
         const zipBuffer = await createZip();
         

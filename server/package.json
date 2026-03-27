@@ -5,8 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun --minify",
+    "build": "bun build src/index.ts --outdir dist --target bun --minify && bun run build-lambda",
     "start": "bun run dist/index.js",
+    "build-lambda": "bun run scripts/build-lambda.ts",
     "cloud-setup": "bun run setup-db && bun run setup-buckets && bun run deploy-lambda && bun run setup-cloudfront",
     "reset-setup": "bun run scripts/reset-setup.ts",
     "setup-buckets": "bun run scripts/setup-buckets.ts",

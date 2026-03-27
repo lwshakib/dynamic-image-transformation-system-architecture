@@ -4,6 +4,7 @@ node_modules
 # output
 out
 dist
+lambda-build
 *.tgz
 
 # code coverage

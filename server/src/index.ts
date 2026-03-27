@@ -18,11 +18,13 @@ const port = env.PORT;
 // Standard S3 Client for local proxying / streaming
 const s3Client = new S3Client({
     region: env.AWS_REGION,
-    credentials: {
-      accessKeyId: env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-    },
-});
+    ...(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY ? {
+      credentials: {
+        accessKeyId: env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+      }
+    } : {})
+} as any);
 
 // 1. Enable CORS for local development and Dashboard communication
 app.use(cors());
@@ -59,23 +61,20 @@ app.get('/cdn/:key(*)', async (req, res) => {
         const { w, h, f } = TransformParamsSchema.parse(req.query);
 
         // C. Use the transformation engine (Sharp + S3 Cache Layer)
-        const cacheKey = await transformationService.transformImage({ key, w, h, f });
-        
-        // D. Fetch the final transformed buffer from the S3 cache
-        const command = new GetObjectCommand({
-            Bucket: env.AWS_BUCKET_NAME_TRANSFORMED,
-            Key: cacheKey,
-        });
-        const response = await s3Client.send(command);
+        // Construct a cache key consistent with CloudFront rewrite patterns: /cdn/original-key/ops...
+        const ops = [];
+        if (f) ops.push(`format=${f}`);
+        if (w) ops.push(`width=${w}`);
+        if (h) ops.push(`height=${h}`);
+        const opsString = ops.length > 0 ? ops.join(',') : 'original';
+        const targetCacheKey = `cdn/${key}/${opsString}`;
 
-        // E. Stream the raw image data back to the user with standard cache headers
-        if (response.Body) {
-            res.setHeader('Content-Type', response.ContentType || 'image/webp');
-            res.setHeader('Cache-Control', 'public, max-age=3600');
-            (response.Body as Readable).pipe(res);
-        } else {
-            res.status(404).json({ error: 'Failed to access transformed image body' });
-        }
+        const { buffer, contentType } = await transformationService.transformImage(key, targetCacheKey, { width: w, height: h, format: f });
+        
+        // D. Send the transformed buffer back directly
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.send(buffer);
     } catch (error) {
         if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues });
         console.error('CDN Proxy fatal error:', error);

@@ -1,11 +1,15 @@
-function handler(event) {
+/**
+ * CloudFront Function: URL Rewriting for Dynamic Image Transformation
+ * Optimized for Origin Failover logic.
+ */
+function handler(event: { request: any }): any {
     var request = event.request;
     var uri = request.uri;
 
     // Check if the request is for an image in the CDN path
     if (uri.startsWith('/cdn/')) {
         var originalImagePath = uri.replace('/cdn/', '');
-        var normalizedOperations = {};
+        var normalizedOperations: { [key: string]: string } = {};
 
         if (request.querystring) {
             Object.keys(request.querystring).forEach(function(operation) {
@@ -77,4 +81,9 @@ function handler(event) {
     }
 
     return request;
+}
+
+// @ts-ignore
+if (typeof module !== 'undefined') {
+    module.exports = { handler };
 }

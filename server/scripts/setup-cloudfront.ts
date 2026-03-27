@@ -27,7 +27,22 @@ const ORIGIN_REQUEST_POLICY_ID = "b689b0a8-53d0-40ab-baf2-68738e2966ac"; // AllV
 
 async function setupCloudFrontFunction() {
     const functionName = "UrlRewriteFunction";
-    const functionCode = fs.readFileSync(path.join(__dirname, '../src/lambda/url-rewrite.js'), 'utf8');
+    const tsPath = path.join(__dirname, '../src/lambda/url-rewrite.ts');
+    
+    if (!fs.existsSync(tsPath)) {
+        throw new Error(`CloudFront Function source not found at ${tsPath}`);
+    }
+
+    let functionCode = fs.readFileSync(tsPath, 'utf8');
+
+    // --- CRITICAL: Strip basic TypeScript types for CloudFront Function compatibility ---
+    // CloudFront Functions (runtime 1.0) do not support TypeScript or modern JS features.
+    // We strip types and the module.exports block to keep it pure JS.
+    functionCode = functionCode
+        .replace(/:\s*{[^}]*}/g, '') // Remove object type annotations
+        .replace(/:\s*any/g, '')     // Remove : any
+        .replace(/:\s*{\s*\[key:\s*string\]:\s*string\s*}/g, '') // Remove specific map types
+        .replace(/\/\/ @ts-ignore[\s\S]*$/, ''); // Strip the module.exports block at the end
 
     try {
         console.log(`Checking CloudFront Function: ${functionName}...`);
