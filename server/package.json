@@ -7,13 +7,13 @@
     "dev": "bun run --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun --minify && bun run build-lambda",
     "start": "bun run dist/index.js",
-    "build-lambda": "bun run scripts/build-lambda.ts",
+    "build-lambda": "bun run scripts/deployment/build-lambda.ts",
     "cloud-setup": "bun run setup-db && bun run setup-buckets && bun run deploy-lambda && bun run setup-cloudfront",
-    "reset-setup": "bun run scripts/reset-setup.ts",
-    "setup-buckets": "bun run scripts/setup-buckets.ts",
-    "setup-db": "bun run scripts/setup-db.ts",
-    "deploy-lambda": "bun run scripts/deploy-lambda.ts",
-    "setup-cloudfront": "bun run scripts/setup-cloudfront.ts"
+    "reset-setup": "bun run scripts/infrastructure/reset-setup.ts",
+    "setup-buckets": "bun run scripts/infrastructure/setup-buckets.ts",
+    "setup-db": "bun run scripts/infrastructure/setup-db.ts",
+    "deploy-lambda": "bun run scripts/deployment/deploy-lambda.ts",
+    "setup-cloudfront": "bun run scripts/infrastructure/setup-cloudfront.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.1017.0",

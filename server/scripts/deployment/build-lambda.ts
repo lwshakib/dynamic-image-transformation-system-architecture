@@ -7,7 +7,7 @@ import { execSync } from "child_process";
  * Logic: Bundle with Bun -> Install Linux-specific Sharp
  */
 export async function buildLambda() {
-    const projectRoot = path.join(__dirname, "..");
+    const projectRoot = path.join(__dirname, "../..");
     const buildDir = path.join(projectRoot, "lambda-build");
     
     console.log(`\n\x1b[36m\x1b[1m=== Lambda Build Tool ===\x1b[0m`);

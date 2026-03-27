@@ -19,7 +19,7 @@ import fs from "fs";
 import path from "path";
 import archiver from "archiver";
 import { execSync } from "child_process";
-import { env } from "../src/config/env";
+import { env } from "../../src/config/env";
 
 /**
  * AWS Lambda Infrastructure Deployer
@@ -31,7 +31,7 @@ const functionName = "image-transformation-engine";
 const roleName = "image-transformation-engine-role";
 
 function updateEnvFile(key: string, value: string) {
-    const envPath = path.join(__dirname, '../.env');
+    const envPath = path.join(__dirname, '../../.env');
     try {
         let content = fs.readFileSync(envPath, 'utf8');
         const newLine = `${key}=${value}`;
@@ -59,7 +59,7 @@ async function buildLambda() {
 
 async function createZip() {
     return new Promise<Buffer>((resolve, reject) => {
-        const buildDir = path.join(__dirname, "../lambda-build");
+        const buildDir = path.join(__dirname, "../../lambda-build");
         const chunks: Buffer[] = [];
         const archive = archiver('zip', { zlib: { level: 9 } });
         

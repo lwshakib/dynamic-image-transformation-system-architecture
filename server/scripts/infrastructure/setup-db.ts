@@ -1,4 +1,5 @@
-import { postgresService } from '../src/services/postgres.service';
+import { postgresService } from '../../src/services/postgres.service';
+import { env } from '../../src/config/env';
 import fs from 'fs';
 import path from 'path';
 

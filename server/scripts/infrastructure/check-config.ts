@@ -1,11 +1,11 @@
 import { LambdaClient, GetFunctionUrlConfigCommand, GetPolicyCommand } from "@aws-sdk/client-lambda";
-import { env } from "../src/config/env";
+import { env } from "../../src/config/env";
 
 const lambdaClient = new LambdaClient({ 
     region: env.AWS_REGION,
     credentials: {
-        accessKeyId: env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: env.AWS_SECRET_ACCESS_KEY
+        accessKeyId: env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: env.AWS_SECRET_ACCESS_KEY!
     }
 });
 const functionName = "image-transformation-engine";

@@ -1,8 +1,8 @@
-import { transformationService } from "./src/services/transformation.service";
+import { transformationService } from "../../src/services/transformation.service";
 import fs from "fs";
 import path from "path";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { env } from "./src/config/env";
+import { env } from "../../src/config/env";
 
 const s3Client = new S3Client({
     region: env.AWS_REGION,

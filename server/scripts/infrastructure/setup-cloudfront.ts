@@ -8,7 +8,7 @@ import {
   UpdateFunctionCommand,
   PublishFunctionCommand
 } from "@aws-sdk/client-cloudfront";
-import { env } from "../src/config/env";
+import { env } from "../../src/config/env";
 import fs from "fs";
 import path from "path";
 
@@ -27,7 +27,7 @@ const ORIGIN_REQUEST_POLICY_ID = "b689b0a8-53d0-40ab-baf2-68738e2966ac"; // AllV
 
 async function setupCloudFrontFunction() {
     const functionName = "UrlRewriteFunction";
-    const tsPath = path.join(__dirname, '../src/lambda/url-rewrite.ts');
+    const tsPath = path.join(__dirname, '../../src/lambda/url-rewrite.ts');
     
     if (!fs.existsSync(tsPath)) {
         throw new Error(`CloudFront Function source not found at ${tsPath}`);
@@ -83,7 +83,7 @@ async function setupCloudFrontFunction() {
 }
 
 function updateEnvFile(key: string, value: string) {
-    const envPath = path.join(__dirname, '../.env');
+    const envPath = path.join(__dirname, '../../.env');
     try {
         let content = fs.readFileSync(envPath, 'utf8');
         const newLine = `${key}=${value}`;
