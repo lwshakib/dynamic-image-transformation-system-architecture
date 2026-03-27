@@ -1,52 +1,88 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { transformationService } from '../services/transformation.service';
-import { s3Service } from '../services/s3.service';
 
 /**
- * AWS Lambda Handler for on-the-go image transformation.
- * Typically triggered as a CloudFront Origin via Function URL or API Gateway.
+ * AWS Lambda Execution Handler (Blog-Inspired Architecture)
+ * Optimized for CloudFront Origin Failover + CloudFront Functions path rewriting.
  */
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  console.log('Incoming Event:', JSON.stringify(event, null, 2));
+  
   try {
-    // 1. Parse Path for Original Key (e.g. /cdn/uploads/my-image.jpg)
-    // Extract everything after /cdn/
-    const path = event.path || '';
-    const key = path.startsWith('/cdn/') ? path.replace('/cdn/', '') : path;
+    // 1. Path Parsing (Supports normalized paths from CloudFront Function)
+    // Expected format: /cdn/original-image.jpg/format=webp,width=100
+    // OR: /cdn/original-image.jpg/original
+    // @ts-ignore
+    const rawPath = event.rawPath || event.path || '';
     
-    if (!key) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Missing image key' }) };
+    // Split the path to get original key and operations
+    const pathParts = rawPath.split('/').map((p: string) => {
+      try { return decodeURIComponent(p); } catch (e) { return p; }
+    });
+    // e.g., ["", "cdn", "folder", "img with space.jpg", "format=webp,width=100"]
+    
+    const operationsPrefix = pathParts.pop() || ''; // "format=webp,width=300" or "original"
+    
+    // Remove "cdn" from parts if it exists at the start
+    if (pathParts[1] === 'cdn') {
+      pathParts.splice(1, 1);
+    }
+    
+    const originalKey = pathParts.filter(p => p).join('/'); // "folder/img with space.jpg"
+    
+    if (!originalKey) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Missing image key in URL path', path: rawPath }),
+      };
     }
 
-    // 2. Parse Transformation Params
-    const query = event.queryStringParameters || {};
-    const params = {
-      key,
-      w: query.w ? parseInt(query.w) : undefined,
-      h: query.h ? parseInt(query.h) : undefined,
-      f: query.f || undefined,
-    };
+    // 2. Parse Operations
+    const ops: any = {};
+    if (operationsPrefix === 'original') {
+      ops.original = true;
+    } else {
+      operationsPrefix.split(',').forEach((op: string) => {
+        const [k, v] = op.split('=');
+        if (k && v) ops[k] = v;
+      });
+    }
 
-    // 3. Transform & Get Cached Key
-    const cacheKey = await transformationService.transformImage(params);
+    // 3. Transformation / Retrieval
+    // The targetCacheKey is EXACTLY the path CloudFront requested from S3
+    // which is the rawPath without the leading slash (S3 keys don't usually start with slash)
+    const targetCacheKey = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath;
 
-    // 4. Generate Pre-signed GET URL for the transformed image (from transformed bucket)
-    const url = await s3Service.getDownloadUrl(cacheKey, true);
+    const { buffer, contentType } = await transformationService.transformImage(originalKey, targetCacheKey, ops);
 
-    // 5. Redirect to the pre-signed S3 URL (or return the image body if needed)
-    // For simplicity and proxy compatibility, we redirect.
+    // 4. Return the image content directly
     return {
-      statusCode: 302,
+      statusCode: 200,
       headers: {
-        Location: url,
-        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour at CDN level
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=31536000', // Long cache for variants
+        'Vary': 'Accept', // Important for auto-format detection
       },
-      body: '',
+      body: buffer.toString('base64'),
+      isBase64Encoded: true,
     };
+
   } catch (error: any) {
-    console.error('Lambda Transformation Error:', error);
+    console.error('Lambda Transformation Panic:', error);
+    
+    if (error.name === 'NoSuchKey') {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: 'Image not found in original bucket' }),
+      };
+    }
+
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Internal server error during transformation' }),
+      body: JSON.stringify({ 
+        error: 'Critical Error during Edge Transformation',
+        details: error.message 
+      }),
     };
   }
 };

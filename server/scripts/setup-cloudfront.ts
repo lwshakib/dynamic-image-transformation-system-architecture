@@ -1,71 +1,227 @@
 import { 
   CloudFrontClient, 
   CreateDistributionCommand, 
-  GetDistributionCommand
+  GetDistributionCommand,
+  UpdateDistributionCommand,
+  CreateFunctionCommand,
+  DescribeFunctionCommand,
+  UpdateFunctionCommand,
+  PublishFunctionCommand
 } from "@aws-sdk/client-cloudfront";
 import { env } from "../src/config/env";
+import fs from "fs";
+import path from "path";
 
+/**
+ * AWS CloudFront Distribution Provisioner (High-Performance Architecture)
+ * Configures CloudFront with:
+ * 1. URL Path Rewriting (CloudFront Functions)
+ * 2. Origin Failover (S3 -> Lambda Generation)
+ * 3. Cache Optimization for on-the-fly transformations.
+ */
 const cloudFrontClient = new CloudFrontClient({ region: env.AWS_REGION });
 
+// Managed Policies
+const CACHE_POLICY_ID = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"; // CachingOptimized (Includes QueryStrings)
+const ORIGIN_REQUEST_POLICY_ID = "b689b0a8-53d0-40ab-baf2-68738e2966ac"; // AllViewerExceptHost
+
+async function setupCloudFrontFunction() {
+    const functionName = "UrlRewriteFunction";
+    const functionCode = fs.readFileSync(path.join(__dirname, '../src/lambda/url-rewrite.js'), 'utf8');
+
+    try {
+        console.log(`Checking CloudFront Function: ${functionName}...`);
+        const { FunctionSummary, ETag } = await cloudFrontClient.send(new DescribeFunctionCommand({ Name: functionName }));
+        
+        console.log("Updating CloudFront Function...");
+        await cloudFrontClient.send(new UpdateFunctionCommand({
+            Name: functionName,
+            IfMatch: ETag,
+            FunctionConfig: {
+                Comment: "Normalized URL rewriting for image transformations",
+                Runtime: "cloudfront-js-1.0"
+            },
+            FunctionCode: Buffer.from(functionCode)
+        }));
+    } catch (error: any) {
+        if (error.name === 'NoSuchFunctionExists') {
+            console.log("Creating new CloudFront Function...");
+            await cloudFrontClient.send(new CreateFunctionCommand({
+                Name: functionName,
+                FunctionConfig: {
+                    Comment: "Normalized URL rewriting for image transformations",
+                    Runtime: "cloudfront-js-1.0"
+                },
+                FunctionCode: Buffer.from(functionCode)
+            }));
+        } else throw error;
+    }
+
+    // Publish the function to get the latest ETag and ARN
+    const { FunctionSummary, ETag } = await cloudFrontClient.send(new DescribeFunctionCommand({ Name: functionName }));
+    const publishRes = await cloudFrontClient.send(new PublishFunctionCommand({
+        Name: functionName,
+        IfMatch: ETag
+    }));
+    
+    return publishRes.FunctionSummary?.FunctionMetadata?.FunctionARN;
+}
+
+function updateEnvFile(key: string, value: string) {
+    const envPath = path.join(__dirname, '../.env');
+    try {
+        let content = fs.readFileSync(envPath, 'utf8');
+        const newLine = `${key}=${value}`;
+        const regex = new RegExp(`${key}=.*`);
+        if (content.includes(`${key}=`)) {
+            content = content.replace(regex, newLine);
+        } else {
+            content += `\n# Automated Infrastructure ${key}\n${newLine}\n`;
+        }
+        fs.writeFileSync(envPath, content);
+        console.log(`\x1b[32mUpdated .env: ${key}=${value}\x1b[0m`);
+    } catch (error: any) {
+        console.warn(`Could not automatically update .env for ${key}: ${error.message}`);
+    }
+}
+
 async function run() {
-    console.log("Setting up CloudFront Distribution...");
+    console.log("\x1b[36m=== High-Performance Edge Distribution Initializer ===\x1b[0m");
     
     try {
-        const distributionId = (process.env as any).CLOUDFRONT_DISTRIBUTION_ID;
-        let exists = false;
-        if (distributionId) {
-            try {
-                await cloudFrontClient.send(new GetDistributionCommand({ Id: distributionId }));
-                exists = true;
-            } catch {}
-        }
+        // 1. Setup the CloudFront Function
+        const functionArn = await setupCloudFrontFunction();
+        if (!functionArn) throw new Error("Failed to deploy CloudFront Function.");
+        console.log(`CloudFront Function Ready: ${functionArn}`);
 
-        if (exists) {
-            console.log("CloudFront already configured. To update, use the AWS Console/CLI.");
-        } else {
-            console.log("Creating new CloudFront Distribution (Targeting Lambda URL)...");
-            
-            // Note: You must provide your Lambda Function URL from the deploy-lambda step
-            const lambdaFunctionUrl = (process.env as any).AWS_LAMBDA_FUNCTION_URL || "your-lambda-id.lambda-url.region.on.aws";
+        // 2. Prepare Origin Configuration
+        const lambdaUrl = env.AWS_LAMBDA_FUNCTION_URL || "";
+        const lambdaDomain = lambdaUrl.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+        const s3TransformedDomain = `${env.AWS_BUCKET_NAME_TRANSFORMED}.s3.${env.AWS_REGION}.amazonaws.com`;
 
-            await cloudFrontClient.send(new CreateDistributionCommand({
-                DistributionConfig: {
-                    CallerReference: Date.now().toString(),
-                    Comment: "Dynamic Image Transformation Engine",
-                    Enabled: true,
-                    Origins: {
-                        Quantity: 1,
-                        Items: [{
-                            Id: "ImageLambdaOrigin",
-                            DomainName: lambdaFunctionUrl.replace("https://", ""),
-                            CustomOriginConfig: {
-                                HTTPPort: 80,
-                                HTTPSPort: 443,
-                                OriginProtocolPolicy: "https-only",
-                            }
-                        }]
+        const config = {
+            CallerReference: Date.now().toString(),
+            Comment: "Digital Asset Transformation Edge (High-Perf)",
+            Enabled: true,
+            Origins: {
+                Quantity: 2,
+                Items: [
+                    {
+                        Id: "S3TransformedOrigin",
+                        DomainName: s3TransformedDomain,
+                        S3OriginConfig: { OriginAccessIdentity: "" } // Using Public/Open for blog demo
                     },
-                    DefaultCacheBehavior: {
-                        TargetOriginId: "ImageLambdaOrigin",
-                        ForwardedValues: {
-                            QueryString: true, // IMPORTANT: Forward w, h, f params
-                            Cookies: { Forward: "none" },
-                            Headers: { Quantity: 0, Items: [] }
-                        },
-                        TrustedSigners: { Quantity: 0, Enabled: false },
-                        ViewerProtocolPolicy: "redirect-to-https",
-                        MinTTL: 0,
-                        DefaultTTL: 86400, // 24 hours
-                        MaxTTL: 31536000, // 1 year
+                    {
+                        Id: "LambdaGenerationOrigin",
+                        DomainName: lambdaDomain,
+                        CustomOriginConfig: {
+                            HTTPPort: 80,
+                            HTTPSPort: 443,
+                            OriginProtocolPolicy: "https-only",
+                            OriginReadTimeout: 30,
+                            OriginKeepaliveTimeout: 5,
+                            OriginSslProtocols: {
+                                Quantity: 3,
+                                Items: ["TLSv1", "TLSv1.1", "TLSv1.2"]
+                            }
+                        }
                     }
+                ]
+            },
+            OriginGroups: {
+                Quantity: 1,
+                Items: [
+                    {
+                        Id: "ImageOptimizationGroup",
+                        FailoverCriteria: {
+                            StatusCodes: {
+                                Quantity: 2,
+                                Items: [403, 404]
+                            }
+                        },
+                        Members: {
+                            Quantity: 2,
+                            Items: [
+                                { OriginId: "S3TransformedOrigin" },
+                                { OriginId: "LambdaGenerationOrigin" }
+                            ]
+                        }
+                    }
+                ]
+            },
+            DefaultCacheBehavior: {
+                TargetOriginId: "ImageOptimizationGroup", // Failover Group
+                ViewerProtocolPolicy: "redirect-to-https",
+                CachePolicyId: CACHE_POLICY_ID,
+                OriginRequestPolicyId: ORIGIN_REQUEST_POLICY_ID,
+                FunctionAssociations: {
+                    Quantity: 1,
+                    Items: [
+                        {
+                            FunctionARN: functionArn,
+                            EventType: "viewer-request"
+                        }
+                    ]
                 }
-            }));
+            }
+        };
 
-            console.log("CloudFront Distribution successfully created!");
-            console.log("Wait 5-10 minutes for global propagation.");
+        // Add required fields to Origin items
+        config.Origins.Items = config.Origins.Items.map(origin => ({
+            OriginPath: "",
+            CustomHeaders: { Quantity: 0 },
+            ...origin,
+        }));
+
+        const distributionId = env.CLOUDFRONT_DISTRIBUTION_ID;
+        
+        if (distributionId) {
+            console.log(`Updating existing Distribution: ${distributionId}...`);
+            const { Distribution, ETag } = await cloudFrontClient.send(new GetDistributionCommand({ Id: distributionId }));
+            
+            if (!Distribution?.DistributionConfig) throw new Error("Could not find distribution config");
+
+            const finalConfig = {
+                ...Distribution.DistributionConfig,
+                ...config,
+                // Keep these from existing
+                CallerReference: Distribution.DistributionConfig.CallerReference,
+                Aliases: Distribution.DistributionConfig.Aliases,
+                DefaultRootObject: Distribution.DistributionConfig.DefaultRootObject,
+                ViewerCertificate: Distribution.DistributionConfig.ViewerCertificate,
+                Origins: config.Origins,
+                OriginGroups: config.OriginGroups,
+                DefaultCacheBehavior: {
+                    ...Distribution.DistributionConfig.DefaultCacheBehavior,
+                    ...config.DefaultCacheBehavior
+                }
+            };
+
+            const updateRes = await cloudFrontClient.send(new UpdateDistributionCommand({
+                Id: distributionId,
+                IfMatch: ETag,
+                DistributionConfig: finalConfig as any
+            }));
+            
+            console.log(`\x1b[32mSuccessfully updated distribution!\x1b[0m`);
+            updateEnvFile('CLOUDFRONT_DOMAIN', updateRes.Distribution?.DomainName || "");
+        } else {
+            console.log("Creating new High-Performance Distribution...");
+            const createRes = await cloudFrontClient.send(new CreateDistributionCommand({
+                DistributionConfig: config as any
+            }));
+            
+            const finalId = createRes.Distribution?.Id || "";
+            const finalDomain = createRes.Distribution?.DomainName || "";
+            
+            updateEnvFile('CLOUDFRONT_DISTRIBUTION_ID', finalId);
+            updateEnvFile('CLOUDFRONT_DOMAIN', finalDomain);
+            console.log(`\x1b[32mSUCCESS: Edge Infrastructure Ready!\x1b[0m`);
         }
+
     } catch (error: any) {
-        console.error("CloudFront Setup error:", error.message);
+        console.error(`\n\x1b[31mFATAL: CloudFront Setup Error:\x1b[0m\n${error.message}`);
+        process.exit(1);
     }
 }
 

@@ -1,48 +1,75 @@
 import { Pool } from 'pg';
 import { env } from '../config/env';
 
-const pool = new Pool({
-  connectionString: env.DATABASE_URL,
-});
+/**
+ * PostgreSQL Service
+ * Handles all database interactions using the 'pg' library with connection pooling.
+ * This service manages the lifecycle of the DB connections and ensures data persistence.
+ */
+class PostgresService {
+  private pool: Pool;
 
-export const postgresService = {
-  async query(text: string, params?: any[]) {
-    try {
-      const start = Date.now();
-      const res = await pool.query(text, params);
-      const duration = Date.now() - start;
-      console.log(`Executed query in ${duration}ms`, { text, duration, rows: res.rowCount });
-      return res;
-    } catch (error) {
-      console.error('Database query error:', error);
-      throw error;
-    }
-  },
+  constructor() {
+    // 1. Initialize the connection pool using the provided database URL
+    this.pool = new Pool({
+      connectionString: env.DATABASE_URL,
+    });
 
-  async getAllImages() {
-    return this.query('SELECT * FROM images ORDER BY created_at DESC');
-  },
-
-  async getImageById(id: string) {
-    const result = await this.query('SELECT * FROM images WHERE id = $1', [id]);
-    return result.rows[0];
-  },
-
-  async addImage(data: { key: string; name: string; type: string; size: string; url: string }) {
-    const query = `
-      INSERT INTO images (key, name, type, size, url, created_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-      RETURNING *
-    `;
-    const result = await this.query(query, [data.key, data.name, data.type, data.size, data.url]);
-    return result.rows[0];
-  },
-
-  async deleteImageById(id: string) {
-    return this.query('DELETE FROM images WHERE id = $1', [id]);
-  },
-  
-  async close() {
-    await pool.end();
+    // 2. Global DB error handling to catch unexpected pool disconnects
+    this.pool.on('error', (err) => {
+      console.error('Unexpected error on idle client', err);
+      process.exit(-1);
+    });
   }
-};
+
+  /**
+   * General-purpose query method for executing SQL commands.
+   */
+  async query(text: string, params?: any[]) {
+    return this.pool.query(text, params);
+  }
+
+  /**
+   * Fetches all images from the DB, ordered by creation date (newest first).
+   */
+  async getAllImages() {
+    return this.pool.query('SELECT * FROM images ORDER BY created_at DESC');
+  }
+
+  /**
+   * Fetches a specific image by its unique ID.
+   */
+  async getImageById(id: string) {
+    const result = await this.pool.query('SELECT * FROM images WHERE id = $1', [id]);
+    return result.rows[0];
+  }
+
+  /**
+   * Adds metadata for a newly uploaded image to the database.
+   * This is used for distribution and listing in the gallery.
+   */
+  async addImage(image: { key: string; name: string; type: string; size: string; url: string }) {
+    const { key, name, type, size, url } = image;
+    return this.pool.query(
+      'INSERT INTO images (key, name, type, size, url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [key, name, type, size, url]
+    );
+  }
+
+  /**
+   * Deletes an image record from the database by ID.
+   */
+  async deleteImageById(id: string) {
+    return this.pool.query('DELETE FROM images WHERE id = $1', [id]);
+  }
+
+  /**
+   * Closes all connections in the pool safely (useful for shutdown/reset scripts).
+   */
+  async close() {
+    await this.pool.end();
+  }
+}
+
+// Export a single instance (Singleton) for application-wide use
+export const postgresService = new PostgresService();

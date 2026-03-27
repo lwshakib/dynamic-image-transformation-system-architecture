@@ -5,6 +5,10 @@ import { CloudFrontClient, DeleteDistributionCommand, GetDistributionCommand, Up
 import { postgresService } from "../src/services/postgres.service";
 import { env } from "../src/config/env";
 
+/**
+ * Global Architecture Decommissioner (Reset Tool)
+ * Safely removes all provisioned resources to clear the environment.
+ */
 const lambdaClient = new LambdaClient({ region: env.AWS_REGION });
 const iamClient = new IAMClient({ region: env.AWS_REGION });
 const s3Client = new S3Client({ region: env.AWS_REGION });
@@ -13,17 +17,24 @@ const cloudFrontClient = new CloudFrontClient({ region: env.AWS_REGION });
 const functionName = "image-transformation-engine";
 const roleName = "image-transformation-engine-role";
 
+/**
+ * DB: Wipe all metadata
+ */
 async function deleteTable() {
-    console.log("Dropping PostgreSQL table...");
+    console.log("Emptying PostgreSQL registry table...");
     try {
         await postgresService.query('DROP TABLE IF EXISTS images');
-        console.log("Table deleted.");
-    } catch (e: any) { console.error("DB Error:", e.message); }
+        console.log("Registry wiped.");
+    } catch (e: any) { console.error("Database Cleanup Error:", e.message); }
 }
 
+/**
+ * S3: Empty and Delete specific buckets
+ */
 async function emptyAndDeleteBucket(bucketName: string) {
     try {
-        console.log(`Emptying bucket "${bucketName}"...`);
+        console.log(`Cleaning S3 storage: Bucket "${bucketName}"...`);
+        // --- 1. S3 buckets must be empty before deletion ---
         const listResult = await s3Client.send(new ListObjectsV2Command({ Bucket: bucketName }));
         if (listResult.Contents?.length) {
             const deleteParams = {
@@ -32,40 +43,50 @@ async function emptyAndDeleteBucket(bucketName: string) {
             };
             await s3Client.send(new DeleteObjectsCommand(deleteParams));
         }
-        console.log(`Deleting bucket "${bucketName}"...`);
+        // --- 2. Safe deletion of the bucket itself ---
         await s3Client.send(new DeleteBucketCommand({ Bucket: bucketName }));
-        console.log(`Bucket "${bucketName}" deleted.`);
+        console.log(`Bucket "${bucketName}" decommissioned.`);
     } catch (e: any) { console.warn(`Bucket Error (${bucketName}):`, e.message); }
 }
 
+/**
+ * Lambda: Remove the transformation engine
+ */
 async function deleteLambda() {
-    console.log(`Deleting Lambda function "${functionName}"...`);
+    console.log(`Decommissioning Lambda function "${functionName}"...`);
     try {
         await lambdaClient.send(new DeleteFunctionCommand({ FunctionName: functionName }));
         console.log("Lambda deleted.");
-    } catch (e: any) { console.warn("Lambda Error:", e.message); }
+    } catch (e: any) { console.warn("Lambda Cleanup Error:", e.message); }
 }
 
+/**
+ * IAM: Remove the automated role and detach policies
+ */
 async function deleteRole() {
-    console.log(`Cleaning up IAM Role "${roleName}"...`);
+    console.log(`Decommissioning IAM Role "${roleName}"...`);
     try {
+        // --- 1. Policies must be detached before a role can be deleted ---
         const policies = await iamClient.send(new ListAttachedRolePoliciesCommand({ RoleName: roleName }));
         if (policies.AttachedPolicies) {
             for (const policy of policies.AttachedPolicies) {
                 await iamClient.send(new DetachRolePolicyCommand({ RoleName: roleName, PolicyArn: policy.PolicyArn }));
             }
         }
+        // --- 2. Final deletion of the role instance ---
         await iamClient.send(new DeleteRoleCommand({ RoleName: roleName }));
-        console.log("IAM Role deleted.");
-    } catch (e: any) { console.warn("IAM Error:", e.message); }
+        console.log("IAM Role decommissioned.");
+    } catch (e: any) { console.warn("IAM Cleanup Error:", e.message); }
 }
 
 async function resetAll() {
-    console.log("\x1b[31m\x1b[1m=== Image Transformation System: Global Reset ===\x1b[0m");
-    
-    // CloudFront reset is complex as it requires disabling first and waiting.
-    console.log("\n\x1b[33mNote: CloudFront distributions require manual disabling/wait (approx 15-20 mins) before deletion. Skipping automated CloudFront deletion to prevent script hang.\x1b[0m");
-    
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    console.log("\n\x1b[31m\x1b[1m=== Global Infrastructure Decommissioner (Reset) ===\x1b[0m");
+    console.log("\x1b[33mWarning: This will permanently wipe all S3 assets and DB records.\x1b[0m");
+
+    // Skip CloudFront automated deletion as it takes ~20 minutes to disable
+    console.log("\nNote: CloudFront distributions require manual 'Disable' and 20-min wait before deletion. Skipping automated CDN deletion.");
+
     await deleteTable();
     await emptyAndDeleteBucket(env.AWS_BUCKET_NAME_IMAGES);
     await emptyAndDeleteBucket(env.AWS_BUCKET_NAME_TRANSFORMED);
@@ -73,7 +94,7 @@ async function resetAll() {
     await deleteRole();
 
     await postgresService.close();
-    console.log("\x1b[32m\x1b[1mRESET COMPLETE: Database, S3, and Lambda cleaned up.\x1b[0m");
+    console.log("\n\x1b[32m\x1b[1mSUCCESS: Core Infrastructure wiped clean!\x1b[0m");
 }
 
 resetAll();

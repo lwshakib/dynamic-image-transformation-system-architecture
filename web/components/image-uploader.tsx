@@ -2,107 +2,130 @@
 
 import React, { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { UploadCloud, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Upload, Loader2 } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
 import axios from 'axios'
 import { toast } from 'sonner'
 
+/**
+ * Image Uploader Component
+ * Implements a Direct-to-S3 upload pattern using pre-signed URLs.
+ * This ensures large images are uploaded efficiently without burdening the Express server.
+ */
 interface ImageUploaderProps {
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
 export function ImageUploader({ onSuccess }: ImageUploaderProps) {
+  // --- Global Component State ---
   const [isUploading, setIsUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
+  /**
+   * Main Upload Protocol: Logic follows the 3-step Ingest flow.
+   * 1. Get Pre-signed URL -> 2. Upload to S3 -> 3. Save Metadata to DB.
+   */
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
 
+    // Use environment-based API URL or local default
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
     try {
       setIsUploading(true);
-      setProgress(0);
+      setUploadProgress(10); // Start progress at 10% for immediate feedback
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
-      // 1. Get Pre-signed URL from server
+      // Step 1: Secure Ingest Handshake
+      // We request a temporary authorization (Pre-signed URL) from our server.
       const { data: { uploadUrl, publicUrl, key } } = await axios.post(`${API_URL}/images/presigned-url`, {
         fileName: file.name,
         contentType: file.type
       });
 
-      // 2. Upload to S3/R2 with progress
+      // Step 2: Direct-to-Storage Upload
+      // Using 'axios.put' to send the raw binary directly to AWS S3.
       await axios.put(uploadUrl, file, {
         headers: { 'Content-Type': file.type },
+        // Tracking progress real-time for the user
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || file.size));
-          setProgress(percentCompleted);
+          setUploadProgress(percentCompleted);
         }
       });
 
-      // 3. Confirm upload to server database
+      // Step 3: Global Asset Registry Sync
+      // We inform our Postgres DB about the successful upload so the asset appears in the gallery.
       await axios.post(`${API_URL}/images/confirm`, {
         key,
         name: file.name,
         type: file.type,
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+        size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
         url: publicUrl
       });
 
-      toast.success("Image uploaded successfully!");
-      onSuccess();
-    } catch (error: any) {
-      console.error('Upload failed:', error);
-      toast.error(error.response?.data?.error?.[0]?.message || "Failed to upload image.");
+      // Success Feedback Layer
+      toast.success("Successfully uploaded to S3 Cloud.");
+      // Trigger parent synchronization (fetching updated list)
+      onSuccess?.();
+    } catch (error) {
+      console.error('Core Uploader Panic Error:', error);
+      toast.error("Upload process failed.");
     } finally {
+      // Final Cleanup Phase
       setIsUploading(false);
-      setProgress(0);
+      setUploadProgress(0);
     }
   }, [onSuccess]);
 
+  // Dropzone Hook Configuration: Restrict to single image uploads
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.gif']
-    },
-    multiple: false,
-    disabled: isUploading
+    accept: { 'image/*': [] },
+    multiple: false
   });
 
   return (
-    <div
-      {...getRootProps()}
-      className={cn(
-        "flex flex-col items-center justify-center w-full min-h-[160px] border-2 border-dashed rounded-lg cursor-pointer transition-all duration-300 relative overflow-hidden",
-        isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/20 hover:border-primary/50 bg-card",
-        isUploading && "pointer-events-none opacity-80"
-      )}
-    >
-      <input {...getInputProps()} />
-      
-      {isUploading ? (
-        <div className="flex flex-col items-center space-y-3">
-          <Loader2 className="w-10 h-10 text-primary animate-spin" />
-          <div className="text-center">
-             <p className="text-sm font-medium">Uploading... {progress}%</p>
-             <div className="w-48 h-1.5 bg-muted rounded-full mt-2 overflow-hidden">
-                <div 
-                    className="h-full bg-primary transition-all duration-300 ease-out" 
-                    style={{ width: `${progress}%` }} 
-                />
-             </div>
+    <div className="space-y-4">
+      {/* 1. Drag-and-Drop Interaction Zone */}
+      <div
+        {...getRootProps()}
+        className={`
+          border-2 border-dashed rounded-[1rem] p-12 transition-all cursor-pointer text-center group
+          ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/10 hover:border-muted-foreground/30'}
+          ${isUploading ? 'pointer-events-none opacity-60' : ''}
+        `}
+      >
+        <input {...getInputProps()} />
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+             {/* Dynamic Icon Layer (Loading vs Ready) */}
+             {isUploading ? (
+               <Loader2 className="w-8 h-8 text-primary animate-spin" />
+             ) : (
+               <Upload className="w-8 h-8 text-primary" />
+             )}
+          </div>
+          <div className="space-y-1">
+             <p className="font-bold text-lg tracking-tight">
+                {isDragActive ? "Release to process" : "Select an image"}
+             </p>
+             <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
+                Automated optimization active
+             </p>
           </div>
         </div>
-      ) : (
-        <>
-            <UploadCloud className="w-10 h-10 mb-3 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-primary">Click to upload</span> or drag and drop
-            </p>
-            <p className="text-xs text-muted-foreground mt-1 font-medium">
-                PNG, JPG or WebP (max 5MB)
-            </p>
-        </>
+      </div>
+
+      {/* 2. Visual Progress Feedback Layer */}
+      {isUploading && (
+        <div className="space-y-2 px-2">
+            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary">
+                <span>Ingesting to edge storage...</span>
+                <span>{uploadProgress}%</span>
+            </div>
+            <Progress value={uploadProgress} className="h-1" />
+        </div>
       )}
     </div>
   )
