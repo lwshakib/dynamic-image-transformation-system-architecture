@@ -55,8 +55,14 @@ bun run dev
 
 ---
 
+---
+
 ## 🤝 Contributing
 We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) and [Code of Conduct](./CODE_OF_CONDUCT.md).
+
+## 📚 References & Inspiration
+This project's architecture is inspired by and aligned with the official AWS Networking & Content Delivery Blog:
+- [Image Optimization using Amazon CloudFront and AWS Lambda](https://aws.amazon.com/blogs/networking-and-content-delivery/image-optimization-using-amazon-cloudfront-and-aws-lambda/)
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.

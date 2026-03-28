@@ -56,3 +56,10 @@ Using `bun run infra:setup` in the `server` directory creates the entire stack (
 
 ### Manual Configuration
 For legacy environments or strict permission controls, see our [AWS Configuration Guide](./AWS_CONFIGURATION.md).
+
+---
+
+## 📚 References
+The "Origin Failover" and "URL Normalization" patterns used in this system are based on the official AWS architectural guidance:
+- [AWS Blog: Image Optimization using Amazon CloudFront and AWS Lambda](https://aws.amazon.com/blogs/networking-and-content-delivery/image-optimization-using-amazon-cloudfront-and-aws-lambda/)
+
