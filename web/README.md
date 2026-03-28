@@ -14,6 +14,7 @@ A modern Next.js dashboard to manage your images and interact with the transform
 ## 🚀 Getting Started
 
 ### Development
+
 ```bash
 bun install
 bun run dev
@@ -22,6 +23,7 @@ bun run dev
 Open [http://localhost:3000](http://localhost:3000) to view the dashboard.
 
 ### Build for Production
+
 ```bash
 bun run build
 bun run start
@@ -43,5 +45,6 @@ The dashboard communicates with the Bun proxy server (default: `localhost:3001`)
 ---
 
 ## 📜 Documentation Links
+
 - [Root Architecture Guide](../ARCHITECTURE.md)
 - [AWS Configuration Manual](../AWS_CONFIGURATION.md)

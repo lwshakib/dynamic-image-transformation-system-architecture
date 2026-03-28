@@ -7,6 +7,7 @@ This is the proxy and management server for the Dynamic Image Transformation pip
 The backend includes a suite of scripts to manage your AWS resources and local database automatically.
 
 ### Provisioning Commands
+
 Run these from the `server` directory:
 
 - **Full Setup**: `bun run infra:setup` (Provison DB, S3, Lambda, and CloudFront in one go)
@@ -16,6 +17,7 @@ Run these from the `server` directory:
 - **CDN Setup**: `bun run cloudfront:setup` (Configures CloudFront Distribution)
 
 ### Reset / Decommissioning
+
 - **Full Reset**: `bun run infra:reset` (Wipes all AWS resources and local DB)
 - **Individual Resets**: `bun run db:reset`, `bun run buckets:reset`, `bun run lambda:reset`, `bun run cloudfront:reset`
 
@@ -35,7 +37,7 @@ AWS Lambda requires a specific binary version of the `sharp` library (for Linux 
 
 ## 🔑 Environment Configuration
 
-Copy `.env.example` to `.env` and fill in your AWS credentials. 
+Copy `.env.example` to `.env` and fill in your AWS credentials.
 
 > [!TIP]
 > Variables in the **Automated Infrastructure** section will be populated automatically if you use the `infra:setup` scripts!
@@ -45,11 +47,13 @@ Copy `.env.example` to `.env` and fill in your AWS credentials.
 ## 🚀 Running the Server
 
 ### Development
+
 ```bash
 bun run dev
 ```
 
 ### Production
+
 ```bash
 bun run build
 bun run start
@@ -58,5 +62,6 @@ bun run start
 ---
 
 ## 📜 Documentation Links
+
 - [Root Architecture Guide](../ARCHITECTURE.md)
 - [AWS Configuration Manual](../AWS_CONFIGURATION.md)
