@@ -1,10 +1,12 @@
 -- Create the images table
-CREATE TABLE IF NOT EXISTS images (
+DROP TABLE IF EXISTS images;
+CREATE TABLE images (
     id SERIAL PRIMARY KEY,
     key VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     type VARCHAR(100) NOT NULL,
     size VARCHAR(50) NOT NULL,
-    url TEXT NOT NULL,
+    path TEXT NOT NULL,
+    secure BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

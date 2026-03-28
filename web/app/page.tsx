@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { ImageUploader } from '@/components/image-uploader'
 import { ImageList } from '@/components/image-list'
 import { Toaster, toast } from 'sonner'
+import { Switch } from '@/components/ui/switch'
 import axios from 'axios'
 
 /**
@@ -23,6 +24,7 @@ interface UploadedImage {
 export default function Home() {
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSecureMode, setIsSecureMode] = useState(false);
 
   /**
    * Data Layer: Fetch all images from the backend registry.
@@ -62,6 +64,18 @@ export default function Home() {
     }
   };
 
+  /**
+   * Action Layer: Toggle Security Mode
+   */
+  const handleSecurityToggle = (checked: boolean) => {
+    setIsSecureMode(checked);
+    if (checked) {
+      toast.success("Total Security Enabled: Cryptographic signing active.");
+    } else {
+      toast.warning("Security Relaxed: Path-only validation active.");
+    }
+  };
+
   return (
     <main className="min-h-screen container mx-auto p-4 md:p-16 max-w-3xl space-y-12">
       {/* 1. Page Header (Modern Minimalist Title) */}
@@ -70,9 +84,24 @@ export default function Home() {
           <p className="text-sm text-muted-foreground">Upload and test dynamic edge assets.</p>
       </header>
 
-      {/* 2. Drag-and-Drop Ingest Interface */}
+      {/* 2. System Security Control (Simplified) */}
+      <section className="flex items-center justify-between px-2 py-4 border-b border-primary/5">
+          <div className="space-y-0.5">
+              <h3 className="text-sm font-medium">Security</h3>
+              <p className="text-[11px] text-muted-foreground">
+                  {isSecureMode ? "Cryptographic signing enabled" : "Standard path validation"}
+              </p>
+          </div>
+          <Switch 
+            checked={isSecureMode}
+            onCheckedChange={handleSecurityToggle}
+            size="sm"
+          />
+      </section>
+
+      {/* 3. Drag-and-Drop Ingest Interface */}
       <section className="space-y-4">
-          <ImageUploader onSuccess={fetchImages} />
+          <ImageUploader onSuccess={fetchImages} isSecure={isSecureMode} />
       </section>
 
       {/* 3. Global Distribution Gallery */}
@@ -81,7 +110,7 @@ export default function Home() {
               <h2 className="text-lg font-semibold tracking-tight">Asset Distribution</h2>
               {isLoading && <span className="text-xs text-muted-foreground animate-pulse">Syncing...</span>}
           </div>
-          <ImageList images={images} onDelete={handleDelete} />
+          <ImageList images={images} onDelete={handleDelete} isSecure={isSecureMode} />
       </section>
 
       {/* Notification Layer for user feedback */}

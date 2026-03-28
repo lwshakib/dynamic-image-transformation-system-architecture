@@ -48,11 +48,11 @@ class PostgresService {
    * Adds metadata for a newly uploaded image to the database.
    * This is used for distribution and listing in the gallery.
    */
-  async addImage(image: { key: string; name: string; type: string; size: string; url: string }) {
-    const { key, name, type, size, url } = image;
+  async addImage(image: { key: string; name: string; type: string; size: string; path: string; secure: boolean }) {
+    const { key, name, type, size, path, secure } = image;
     return this.pool.query(
-      'INSERT INTO images (key, name, type, size, url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [key, name, type, size, url]
+      'INSERT INTO images (key, name, type, size, path, secure) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [key, name, type, size, path, secure]
     );
   }
 

@@ -1,8 +1,9 @@
 "use client"
 
-import React from 'react'
-import { Trash2 } from 'lucide-react'
+import { Trash2, ShieldCheck, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 /**
  * Minimalist Asset List (Gallery Component)
@@ -11,16 +12,18 @@ import { Button } from '@/components/ui/button'
 interface UploadedImage {
   id: string;
   name: string;
-  url: string; // The base CDN Proxy URL (e.g. /cdn/uploads/...)
+  path: string; // The path relative to /cdn/
+  secure: boolean;
   key: string;
 }
 
 interface ImageListProps {
   images: UploadedImage[];
   onDelete: (id: string) => void;
+  isSecure?: boolean;
 }
 
-export function ImageList({ images, onDelete }: ImageListProps) {
+export function ImageList({ images, onDelete, isSecure = false }: ImageListProps) {
   // Empty state feedback
   if (images.length === 0) {
     return (
@@ -30,52 +33,76 @@ export function ImageList({ images, onDelete }: ImageListProps) {
     )
   }
 
+  // Distribution Base for assets
+  const distributionBase = process.env.NEXT_PUBLIC_CDN_URL || 'http://localhost:3001/cdn';
+
   return (
     <div className="space-y-1">
-      {images.map((image) => (
-        <div key={image.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 group transition-all">
-          {/* A. Left-Side Metadata and Preview */}
-          <div className="flex items-center gap-4 min-w-0">
-             {/* Thumbnail Link points directly to your Edge Transformation engine */}
-             <a 
-                href={image.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-md overflow-hidden bg-muted shrink-0 border border-muted-foreground/10 shadow-sm"
-             >
-                <img 
-                    src={image.url} 
-                    alt={image.name} 
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-300" 
-                />
-             </a>
+      {images.map((image) => {
+        const fullUrl = `${distributionBase}/${image.path}`;
+        
+        return (
+          <div key={image.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 group transition-all">
+            {/* A. Left-Side Metadata and Preview */}
+            <div className="flex items-center gap-4 min-w-0">
+               {/* Thumbnail Link points directly to your Edge Transformation engine */}
+               <a 
+                  href={fullUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-md overflow-hidden bg-muted shrink-0 border border-muted-foreground/10 shadow-sm"
+               >
+                  <img 
+                      src={fullUrl} 
+                      alt={image.name} 
+                      className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-300" 
+                  />
+               </a>
 
-             {/* Filename link - User can click to open in new tab and test ?w= queries */}
-             <a 
-                href={image.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                title="Open in transformation engine"
-                className="text-sm font-medium truncate hover:underline text-muted-foreground hover:text-foreground transition-colors"
-             >
-                {image.name}
-             </a>
-          </div>
+                <div className="flex flex-col min-w-0">
+                    <a 
+                      href={fullUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      title="Open in transformation engine"
+                      className="text-sm font-medium truncate hover:underline text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {image.name}
+                    </a>
+                    
+                    {image.secure && (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1 cursor-help opacity-70 hover:opacity-100 transition-opacity">
+                                      <ShieldCheck className="w-3 h-3 text-primary" />
+                                      <span className="text-[10px] font-medium text-primary">Signed</span>
+                                  </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="text-[10px] py-1 px-2">
+                                  Signature verified
+                              </TooltipContent>
+                          </Tooltip>
+                      </div>
+                    )}
+                </div>
+            </div>
 
-          {/* B. Subtle Action Layer (Visible on Hover only) */}
-          <div className="flex items-center gap-2">
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => onDelete(image.id)}
-                title="Permanently remove asset"
-                className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            >
-                <Trash2 className="w-4 h-4" />
-            </Button>
+            {/* B. Subtle Action Layer (Visible on Hover only) */}
+            <div className="flex items-center gap-2">
+              <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => onDelete(image.id)}
+                  title="Permanently remove asset"
+                  className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                  <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
-  )
+  );
 }

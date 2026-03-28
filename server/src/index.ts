@@ -89,17 +89,7 @@ app.get('/cdn/:key(*)', async (req, res) => {
 app.get('/images', async (req, res) => {
     try {
         const result = await postgresService.getAllImages();
-        
-        // Determine the base distribution URL: Production CloudFront or Local Proxy
-        const distributionBase = env.CLOUDFRONT_DOMAIN 
-            ? `https://${env.CLOUDFRONT_DOMAIN}/cdn`
-            : `http://localhost:${port}/cdn`;
-
-        const transformedList = result.rows.map((image) => ({
-            ...image,
-            url: `${distributionBase}/${image.key}`,
-        }));
-        res.json(transformedList);
+        res.json(result.rows);
     } catch (error) {
         console.error('Database retrieval error:', error);
         res.status(500).json({ error: 'Failed to synchronize gallery' });
@@ -128,8 +118,8 @@ app.post('/images/presigned-url', async (req, res) => {
  */
 app.post('/images/confirm', async (req, res) => {
     try {
-        const { key, name, type, size, url } = req.body;
-        const result = await postgresService.addImage({ key, name, type, size, url });
+        const { key, name, type, size, path, secure } = req.body;
+        const result = await postgresService.addImage({ key, name, type, size, path, secure });
         res.json(result);
     } catch (error) {
         console.error('DB metadata sync error:', error);

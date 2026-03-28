@@ -14,9 +14,10 @@ import { toast } from 'sonner'
  */
 interface ImageUploaderProps {
   onSuccess?: () => void;
+  isSecure?: boolean;
 }
 
-export function ImageUploader({ onSuccess }: ImageUploaderProps) {
+export function ImageUploader({ onSuccess, isSecure = false }: ImageUploaderProps) {
   // --- Global Component State ---
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -61,7 +62,8 @@ export function ImageUploader({ onSuccess }: ImageUploaderProps) {
         name: file.name,
         type: file.type,
         size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-        url: publicUrl
+        path: key,
+        secure: isSecure
       });
 
       // Success Feedback Layer
@@ -110,7 +112,7 @@ export function ImageUploader({ onSuccess }: ImageUploaderProps) {
              <p className="font-bold text-lg tracking-tight">
                 {isDragActive ? "Release to process" : "Select an image"}
              </p>
-             <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
+             <p className="text-[11px] text-muted-foreground font-medium">
                 Automated optimization active
              </p>
           </div>
@@ -120,7 +122,7 @@ export function ImageUploader({ onSuccess }: ImageUploaderProps) {
       {/* 2. Visual Progress Feedback Layer */}
       {isUploading && (
         <div className="space-y-2 px-2">
-            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary">
+            <div className="flex justify-between text-[11px] font-medium text-primary">
                 <span>Ingesting to edge storage...</span>
                 <span>{uploadProgress}%</span>
             </div>
