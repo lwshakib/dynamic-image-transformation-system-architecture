@@ -4,7 +4,7 @@ import { env } from '../../config/env'
 const SECRET = env.SIGNING_SECRET
 
 function getNormalizedPath(key: string, params: any): string {
-  const ops = []
+  const ops: string[] = []
   const opsString = ops.length > 0 ? ops.join(',') : 'original'
   const basePath = `cdn/${key}/${opsString}`
   return params.e ? `${basePath}?e=${params.e}` : basePath
