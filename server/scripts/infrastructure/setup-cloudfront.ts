@@ -218,6 +218,13 @@ async function run() {
             console.log(`\x1b[32mSUCCESS: Edge Infrastructure Ready!\x1b[0m`);
         }
 
+        // --- Propagation Warning ---
+        console.log("\n\x1b[33m\x1b[1m⚠️  IMPORTANT: Propagation Period Required ⚠️\x1b[0m");
+        console.log("CloudFront distributions take 15-20 minutes to fully propagate globally.");
+        console.log("Until the status in the AWS Console reaches 'Deployed', you may experience");
+        console.log("'403 Forbidden' or '404 Not Found' errors.");
+        console.log("\nPlease monitor the AWS CloudFront Dashboard before testing transformations.");
+
     } catch (error: any) {
         console.error(`\n\x1b[31mFATAL: CloudFront Setup Error:\x1b[0m\n${error.message}`);
         process.exit(1);
