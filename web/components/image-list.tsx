@@ -2,9 +2,9 @@
 
 import { Trash2, ShieldCheck, Settings2, ExternalLink, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import Image from 'next/image'
 import axios from 'axios'
 import { 
   Dialog, 
@@ -35,15 +35,16 @@ interface UploadedImage {
   secure: boolean;
   key: string;
   distributionBase: string;
+  signature?: string;
+  expires?: string;
 }
 
 interface ImageListProps {
   images: UploadedImage[];
   onDelete: (id: string) => void;
-  isSecure?: boolean;
 }
 
-export function ImageList({ images, onDelete, isSecure = false }: ImageListProps) {
+export function ImageList({ images, onDelete }: ImageListProps) {
   // 1. Dialog & Parameter State
   const [selectedImage, setSelectedImage] = useState<UploadedImage | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -86,8 +87,8 @@ export function ImageList({ images, onDelete, isSecure = false }: ImageListProps
     setIsDialogOpen(true);
     
     // Initialize with the current gallery signed URL (original view)
-    const sig = (image as any).signature;
-    const exp = (image as any).expires;
+    const sig = image.signature;
+    const exp = image.expires;
     const signatureParam = sig ? `?s=${sig}${exp ? `&e=${exp}` : ''}` : '';
     setSignedUrl(`${image.distributionBase}/${image.path}${signatureParam}`);
     
@@ -111,8 +112,8 @@ export function ImageList({ images, onDelete, isSecure = false }: ImageListProps
   return (
     <div className="space-y-1">
       {images.map((image) => {
-        const sig = (image as any).signature;
-        const exp = (image as any).expires;
+        const sig = image.signature;
+        const exp = image.expires;
         const signatureParam = sig ? `?s=${sig}${exp ? `&e=${exp}` : ''}` : '';
         const fullUrl = `${image.distributionBase}/${image.path}${signatureParam}`;
         
@@ -127,10 +128,13 @@ export function ImageList({ images, onDelete, isSecure = false }: ImageListProps
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-md overflow-hidden bg-muted shrink-0 border border-muted-foreground/10 shadow-sm"
                >
-                  <img 
+                  <Image 
                       src={fullUrl} 
                       alt={image.name} 
-                      className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-300" 
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-300"
+                      unoptimized 
                   />
                </a>
 
@@ -209,10 +213,12 @@ export function ImageList({ images, onDelete, isSecure = false }: ImageListProps
                     </div>
                   )}
                   {signedUrl ? (
-                    <img 
+                    <Image 
                       src={signedUrl} 
                       alt="Preview" 
-                      className="w-full h-full object-contain"
+                      fill
+                      className="object-contain"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">

@@ -17,7 +17,9 @@
     "infra:setup": "bun run db:setup && bun run buckets:setup && bun run lambda:deploy && bun run cloudfront:setup",
     "lambda:build": "bun run scripts/deployment/build-lambda.ts",
     "lambda:deploy": "bun run scripts/deployment/deploy-lambda.ts",
-    "lambda:reset": "bun run scripts/infrastructure/reset-lambda.ts"
+    "lambda:reset": "bun run scripts/infrastructure/reset-lambda.ts",
+    "format": "bunx prettier --write .",
+    "format:check": "bunx prettier --check ."
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.1017.0",
