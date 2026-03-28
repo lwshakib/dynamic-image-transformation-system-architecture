@@ -14,7 +14,7 @@ import fs from 'fs'
 import path from 'path'
 import archiver from 'archiver'
 import { execSync } from 'child_process'
-import { env } from '../../src/config/env'
+import { env } from '../../config/env'
 import { updateEnvFile } from '../utils/env-utils'
 
 /**
@@ -27,7 +27,7 @@ const functionName = 'image-transformation-engine'
 const roleName = 'image-transformation-engine-role'
 
 async function buildLambda() {
-  const projectRoot = path.join(__dirname, '..')
+  const projectRoot = path.join(__dirname, '../../..')
   console.log(`\x1b[36mCalling Lambda build automation...\x1b[0m`)
   execSync(`bun run lambda:build`, {
     cwd: projectRoot,
@@ -37,7 +37,7 @@ async function buildLambda() {
 
 async function createZip() {
   return new Promise<Buffer>((resolve, reject) => {
-    const buildDir = path.join(__dirname, '../../lambda-build')
+    const buildDir = path.join(__dirname, '../../../lambda-build')
     const chunks: Buffer[] = []
     const archive = archiver('zip', { zlib: { level: 9 } })
 

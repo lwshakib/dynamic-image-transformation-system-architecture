@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 
-const envPath = path.join(__dirname, '../../.env')
+const envPath = path.join(__dirname, '../../../.env')
 
 /**
  * Updates or adds a key-value pair in the .env file.
