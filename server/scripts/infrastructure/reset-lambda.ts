@@ -1,6 +1,7 @@
 import { LambdaClient, DeleteFunctionCommand } from "@aws-sdk/client-lambda";
 import { IAMClient, DeleteRoleCommand, DetachRolePolicyCommand, ListAttachedRolePoliciesCommand } from "@aws-sdk/client-iam";
 import { env } from "../../src/config/env";
+import { removeFromEnv } from "../utils/env-utils";
 
 const lambdaClient = new LambdaClient({ region: env.AWS_REGION });
 const iamClient = new IAMClient({ region: env.AWS_REGION });
@@ -35,6 +36,10 @@ async function run() {
     console.log("\n\x1b[31m\x1b[1m=== Lambda & IAM Decommissioner ===\x1b[0m");
     await deleteLambda();
     await deleteRole();
+
+    // Scrub keys from .env
+    removeFromEnv(['AWS_LAMBDA_ROLE_ARN', 'AWS_LAMBDA_FUNCTION_URL']);
+
     console.log("\x1b[32m\x1b[1mSUCCESS: Lambda compute resources wiped clean!\x1b[0m");
 }
 

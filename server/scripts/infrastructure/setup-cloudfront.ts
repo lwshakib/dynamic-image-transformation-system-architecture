@@ -11,6 +11,7 @@ import {
 import { env } from "../../src/config/env";
 import fs from "fs";
 import path from "path";
+import { updateEnvFile } from "../utils/env-utils";
 
 /**
  * AWS CloudFront Distribution Provisioner (High-Performance Architecture)
@@ -82,23 +83,6 @@ async function setupCloudFrontFunction() {
     return publishRes.FunctionSummary?.FunctionMetadata?.FunctionARN;
 }
 
-function updateEnvFile(key: string, value: string) {
-    const envPath = path.join(__dirname, '../../.env');
-    try {
-        let content = fs.readFileSync(envPath, 'utf8');
-        const newLine = `${key}=${value}`;
-        const regex = new RegExp(`${key}=.*`);
-        if (content.includes(`${key}=`)) {
-            content = content.replace(regex, newLine);
-        } else {
-            content += `\n# Automated Infrastructure ${key}\n${newLine}\n`;
-        }
-        fs.writeFileSync(envPath, content);
-        console.log(`\x1b[32mUpdated .env: ${key}=${value}\x1b[0m`);
-    } catch (error: any) {
-        console.warn(`Could not automatically update .env for ${key}: ${error.message}`);
-    }
-}
 
 async function run() {
     console.log("\x1b[36m=== High-Performance Edge Distribution Initializer ===\x1b[0m");

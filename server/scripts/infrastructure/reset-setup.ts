@@ -4,6 +4,7 @@ import { S3Client, DeleteBucketCommand, ListObjectsV2Command, DeleteObjectsComma
 import { CloudFrontClient, DeleteDistributionCommand, GetDistributionCommand, UpdateDistributionCommand } from "@aws-sdk/client-cloudfront";
 import { postgresService } from "../../src/services/postgres.service";
 import { env } from "../../src/config/env";
+import { removeFromEnv } from "../utils/env-utils";
 import fs from "fs";
 import path from "path";
 
@@ -81,37 +82,6 @@ async function deleteRole() {
     } catch (e: any) { console.warn("IAM Cleanup Error:", e.message); }
 }
 
-/**
- * .env: Scrub provisioned infrastructure keys
- */
-function removeFromEnv(keys: string[]) {
-    const envPath = path.join(__dirname, '../.env');
-    try {
-        if (!fs.existsSync(envPath)) return;
-        
-        let content = fs.readFileSync(envPath, 'utf8');
-        let lines = content.split('\n');
-        
-        // Filter out lines that start with the keys or the automated comments
-        const filteredLines = lines.filter(line => {
-            const trimmed = line.trim();
-            // Remove the env var line: KEY=VALUE
-            const isTargetKey = keys.some(key => trimmed.startsWith(`${key}=`));
-            // Remove the automated comment line: # Automated Infrastructure KEY
-            const isTargetComment = keys.some(key => trimmed.startsWith(`# Automated Infrastructure ${key}`));
-            
-            return !isTargetKey && !isTargetComment;
-        });
-        
-        // Clean up any double/triple newlines that might result from removal
-        const finalContent = filteredLines.join('\n').replace(/\n{3,}/g, '\n\n');
-        
-        fs.writeFileSync(envPath, finalContent);
-        console.log(`\x1b[32mScrubbed keys and comments from .env: ${keys.join(', ')}\x1b[0m`);
-    } catch (error: any) {
-        console.warn(`Could not automatically scrub .env: ${error.message}`);
-    }
-}
 
 async function resetAll() {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";

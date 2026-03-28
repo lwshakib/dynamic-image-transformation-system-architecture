@@ -20,6 +20,7 @@ import path from "path";
 import archiver from "archiver";
 import { execSync } from "child_process";
 import { env } from "../../src/config/env";
+import { updateEnvFile } from "../utils/env-utils";
 
 /**
  * AWS Lambda Infrastructure Deployer
@@ -30,23 +31,6 @@ const iamClient = new IAMClient({ region: env.AWS_REGION });
 const functionName = "image-transformation-engine";
 const roleName = "image-transformation-engine-role";
 
-function updateEnvFile(key: string, value: string) {
-    const envPath = path.join(__dirname, '../../.env');
-    try {
-        let content = fs.readFileSync(envPath, 'utf8');
-        const newLine = `${key}=${value}`;
-        const regex = new RegExp(`${key}=.*`);
-        if (content.includes(`${key}=`)) {
-            content = content.replace(regex, newLine);
-        } else {
-            content += `\n# Automated Infrastructure ${key}\n${newLine}\n`;
-        }
-        fs.writeFileSync(envPath, content);
-        console.log(`\x1b[32mUpdated .env: ${key}=${value}\x1b[0m`);
-    } catch (error: any) {
-        console.warn(`Could not automatically update .env for ${key}: ${error.message}`);
-    }
-}
 
 async function buildLambda() {
     const projectRoot = path.join(__dirname, "..");

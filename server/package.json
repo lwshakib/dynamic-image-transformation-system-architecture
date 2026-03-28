@@ -13,7 +13,7 @@
     "cloudfront:reset": "bun run scripts/infrastructure/reset-cloudfront.ts",
     "db:reset": "bun run scripts/infrastructure/reset-db.ts",
     "db:setup": "bun run scripts/infrastructure/setup-db.ts",
-    "infra:reset": "bun run scripts/infrastructure/reset-setup.ts",
+    "infra:reset": "bun run db:reset && bun run lambda:reset && bun run buckets:reset && bun run cloudfront:reset",
     "infra:setup": "bun run db:setup && bun run buckets:setup && bun run lambda:deploy && bun run cloudfront:setup",
     "lambda:build": "bun run scripts/deployment/build-lambda.ts",
     "lambda:deploy": "bun run scripts/deployment/deploy-lambda.ts",

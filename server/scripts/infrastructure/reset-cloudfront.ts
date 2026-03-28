@@ -1,5 +1,6 @@
 import { CloudFrontClient, GetDistributionCommand, UpdateDistributionCommand } from "@aws-sdk/client-cloudfront";
 import { env } from "../../src/config/env";
+import { removeFromEnv } from "../utils/env-utils";
 
 const cloudFrontClient = new CloudFrontClient({ region: env.AWS_REGION });
 
@@ -49,7 +50,10 @@ async function run() {
         console.log("1. Go to AWS CloudFront Console.");
         console.log(`2. Find Distribution: ${distributionId}`);
         console.log("3. Wait until the status is 'Deployed' and the state is 'Disabled'.");
-        console.log("4. Select the distribution and click the 'Delete' button.");
+        console.log("5. Once disabled, select it again and click 'Delete'.");
+
+        // Scrub keys from .env
+        removeFromEnv(['CLOUDFRONT_DISTRIBUTION_ID', 'CLOUDFRONT_DOMAIN']);
     } catch (e: any) {
         console.error("\x1b[31mCloudFront Reset Error:\x1b[0m", e.message);
     }
