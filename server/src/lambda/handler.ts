@@ -52,8 +52,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // 3. Transformation / Retrieval
     // The targetCacheKey is EXACTLY the path CloudFront requested from S3
-    // which is the rawPath without the leading slash (S3 keys don't usually start with slash)
-    const targetCacheKey = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath;
+    // which is the rawPath without the leading slash.
+    // CRITICAL: We MUST decode the path to match the signature generation logic.
+    let targetCacheKey = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath;
+    try {
+      targetCacheKey = decodeURIComponent(targetCacheKey);
+    } catch (e) {
+      console.warn('Path decoding failed:', e);
+    }
 
     const { buffer, contentType } = await transformationService.transformImage(originalKey, targetCacheKey, {
       ...ops,

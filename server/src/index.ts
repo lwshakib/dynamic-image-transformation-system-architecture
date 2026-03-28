@@ -60,7 +60,7 @@ app.get('/cdn/:key(*)', async (req, res) => {
         if (!key) return res.status(400).json({ error: 'Missing image key' });
 
         // B. Parse transformation parameters from the URL query string
-        const { w, h, f } = TransformParamsSchema.parse(req.query);
+        const { w, h, f, q } = req.query as any;
 
         // C. Use the transformation engine (Sharp + S3 Cache Layer)
         // Construct a cache key consistent with CloudFront rewrite patterns: /cdn/original-key/ops...
@@ -68,6 +68,8 @@ app.get('/cdn/:key(*)', async (req, res) => {
         if (f) ops.push(`format=${f}`);
         if (w) ops.push(`width=${w}`);
         if (h) ops.push(`height=${h}`);
+        if (q) ops.push(`quality=${q}`);
+        
         const opsString = ops.length > 0 ? ops.join(',') : 'original';
         const targetCacheKey = `cdn/${key}/${opsString}`;
 
@@ -137,6 +139,44 @@ app.post('/images/presigned-url', async (req, res) => {
     console.error('Failed to generate pre-signed link:', error);
     res.status(500).json({ error: 'Ingest logic error' });
   }
+});
+
+/**
+ * GET /images/:id/sign
+ * On-Demand Signing: Generates a valid HMAC signature for a specific transformation.
+ * Used by the frontend Transformation Dialog to preview secure assets.
+ */
+app.get('/images/:id/sign', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { w, h, f, q } = req.query as any;
+
+        const image = await postgresService.getImageById(id);
+        if (!image) return res.status(404).json({ error: 'Asset not found' });
+
+        // Generate the signature using the same utility as the gallery
+        const signature = SecurityUtils.generateSignature(image.key, { w, h, f, q });
+        
+        const distributionBase = env.CLOUDFRONT_DOMAIN 
+            ? `https://${env.CLOUDFRONT_DOMAIN}/cdn`
+            : `http://localhost:${port}/cdn`;
+
+        // Construct parameters string
+        const ops = [];
+        if (f) ops.push(`f=${f}`);
+        if (w) ops.push(`w=${w}`);
+        if (h) ops.push(`h=${h}`);
+        if (q) ops.push(`q=${q}`);
+        const queryString = [...ops, `s=${signature}`].join('&');
+
+        res.json({ 
+            signature, 
+            signedUrl: `${distributionBase}/${image.path}?${queryString}`
+        });
+    } catch (error) {
+        console.error('Signing error:', error);
+        res.status(500).json({ error: 'Failed to sign transformation' });
+    }
 });
 
 /**
