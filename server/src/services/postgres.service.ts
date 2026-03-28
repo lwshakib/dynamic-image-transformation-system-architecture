@@ -13,6 +13,8 @@ class PostgresService {
     // 1. Initialize the connection pool using the provided database URL
     this.pool = new Pool({
       connectionString: env.DATABASE_URL,
+      // Handle the upcoming security changes in node-postgres by explicitly verifying cloud DBs
+      ssl: env.DATABASE_URL.includes('sslmode=verify-full') || env.DATABASE_URL.includes('neon.tech'),
     })
 
     // 2. Global DB error handling to catch unexpected pool disconnects
