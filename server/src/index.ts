@@ -60,12 +60,20 @@ app.get('/cdn/:key(*)', async (req, res) => {
         if (!key) return res.status(400).json({ error: 'Missing image key' });
 
         // B. Parse transformation parameters from the URL query string
-        const { w, h, f, q } = req.query as any;
+        const { w, h, f, q, e } = req.query as any;
+
+        // Security Check: If an expiry is present, validate it against server time
+        if (e) {
+            const currentTime = Math.floor(Date.now() / 1000);
+            if (parseInt(e) < currentTime) {
+                return res.status(403).json({ error: 'Forbidden: This link has expired.' });
+            }
+        }
 
         // C. Use the transformation engine (Sharp + S3 Cache Layer)
         // Construct a cache key consistent with CloudFront rewrite patterns: /cdn/original-key/ops...
         const ops = [];
-        if (f) ops.push(`format=${f}`);
+        if (f && f !== 'none') ops.push(`format=${f}`);
         if (w) ops.push(`width=${w}`);
         if (h) ops.push(`height=${h}`);
         if (q) ops.push(`quality=${q}`);
@@ -77,7 +85,9 @@ app.get('/cdn/:key(*)', async (req, res) => {
             width: w, 
             height: h, 
             format: f,
-            signature: req.query.s as string 
+            quality: q,
+            signature: req.query.s as string,
+            expires: e
         });
         
         // D. Send the transformed buffer back directly
@@ -111,9 +121,10 @@ app.get('/images', async (req, res) => {
 
             // If image is secure, we MUST provide a platform signature
             if (image.secure) {
-                // Generate a signature for the 'original' transformation
-                const signature = SecurityUtils.generateSignature(image.key, {});
+                const expires = (Math.floor(Date.now() / 1000) + 3600).toString(); // 1-hour window
+                const signature = SecurityUtils.generateSignature(image.key, { e: expires });
                 (row as any).signature = signature;
+                (row as any).expires = expires;
             }
 
             return row;
@@ -154,8 +165,10 @@ app.get('/images/:id/sign', async (req, res) => {
         const image = await postgresService.getImageById(id);
         if (!image) return res.status(404).json({ error: 'Asset not found' });
 
+        const expires = (Math.floor(Date.now() / 1000) + 3600).toString(); // 1-hour window
+
         // Generate the signature using the same utility as the gallery
-        const signature = SecurityUtils.generateSignature(image.key, { w, h, f, q });
+        const signature = SecurityUtils.generateSignature(image.key, { w, h, f, q, e: expires });
         
         const distributionBase = env.CLOUDFRONT_DOMAIN 
             ? `https://${env.CLOUDFRONT_DOMAIN}/cdn`
@@ -167,7 +180,7 @@ app.get('/images/:id/sign', async (req, res) => {
         if (w) ops.push(`w=${w}`);
         if (h) ops.push(`h=${h}`);
         if (q) ops.push(`q=${q}`);
-        const queryString = [...ops, `s=${signature}`].join('&');
+        const queryString = [...ops, `e=${expires}`, `s=${signature}`].join('&');
 
         res.json({ 
             signature, 

@@ -16,6 +16,17 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const rawPath = event.rawPath || event.path || '';
     const queryParams = event.queryStringParameters || {};
     const signature = queryParams.s;
+    const expires = queryParams.e; // Expiration timestamp (seconds)
+
+    // Check expiry if present
+    if (expires) {
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (parseInt(expires) < currentTime) {
+             const error = new Error("Forbidden: This link has expired.");
+             (error as any).name = 'ForbiddenError';
+             throw error;
+        }
+    }
     
     // Split the path to get original key and operations
     const pathParts = rawPath.split('/').map((p: string) => {
@@ -56,14 +67,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     // CRITICAL: We MUST decode the path to match the signature generation logic.
     let targetCacheKey = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath;
     try {
-      targetCacheKey = decodeURIComponent(targetCacheKey);
+      // Decode potential %20 or + characters
+      targetCacheKey = decodeURIComponent(targetCacheKey.replace(/\+/g, ' '));
     } catch (e) {
       console.warn('Path decoding failed:', e);
     }
 
     const { buffer, contentType } = await transformationService.transformImage(originalKey, targetCacheKey, {
       ...ops,
-      signature
+      signature,
+      expires
     });
 
     // 4. Return the image content directly

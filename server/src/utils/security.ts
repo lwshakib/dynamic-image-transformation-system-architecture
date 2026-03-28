@@ -12,7 +12,7 @@ export class SecurityUtils {
      * Generates a signature for a given image path and parameters.
      * Mimics the normalization logic of the CloudFront Function.
      */
-    static generateSignature(imagePath: string, params: { w?: string, h?: string, f?: string, q?: string } = {}): string {
+    static generateSignature(imagePath: string, params: { w?: string, h?: string, f?: string, q?: string, e?: string } = {}): string {
         const normalizedPath = this.getNormalizedPath(imagePath, params);
         
         return crypto
@@ -25,24 +25,36 @@ export class SecurityUtils {
     /**
      * Validates an incoming request path against its signature.
      */
-    static validateSignature(targetPath: string, signature: string): boolean {
+    static validateSignature(targetPathBase: string, signature: string, expiry?: string): boolean {
+        if (!signature || !targetPathBase) return false;
+
+        // Construct the full string used for signing (path + expiry if present)
+        const signableString = expiry ? `${targetPathBase}?e=${expiry}` : targetPathBase;
+
         const expected = crypto
             .createHmac('sha256', this.SECRET)
-            .update(targetPath)
+            .update(signableString)
             .digest('hex')
             .substring(0, 16);
 
-        return crypto.timingSafeEqual(
-            Buffer.from(signature),
-            Buffer.from(expected)
-        );
+        // Security: Use timingSafeEqual to prevent timing attacks
+        // REQUIREMENT: Buffers MUST have identical length
+        const sigBuffer = Buffer.from(signature);
+        const expBuffer = Buffer.from(expected);
+
+        if (sigBuffer.length !== expBuffer.length) {
+            return false;
+        }
+
+        return crypto.timingSafeEqual(sigBuffer, expBuffer);
     }
 
     /**
      * Internal: Replicate the CloudFront Function's path normalization.
-     * Result format: /cdn/original-key/format=webp,width=100
+     * Result format: cdn/original-key/format=webp,width=100
+     * If an expiry is provided, it's appended as a query param in the signable string.
      */
-    private static getNormalizedPath(key: string, params: { w?: string, h?: string, f?: string, q?: string }): string {
+    private static getNormalizedPath(key: string, params: { w?: string, h?: string, f?: string, q?: string, e?: string }): string {
         const ops = [];
         
         // 1. Format
@@ -79,6 +91,9 @@ export class SecurityUtils {
         }
 
         const opsString = ops.length > 0 ? ops.join(',') : 'original';
-        return `cdn/${key}/${opsString}`;
+        const basePath = `cdn/${key}/${opsString}`;
+
+        // If expiry is present, it MUST be part of the signable string
+        return params.e ? `${basePath}?e=${params.e}` : basePath;
     }
 }

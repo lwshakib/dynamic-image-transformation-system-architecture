@@ -76,14 +76,18 @@ function handler(event: { request: any }): any {
             request.uri = '/cdn/' + originalImagePath + '/original';
         }
 
-        // Preserve signature if present (Exclusive access gate)
+        // Preserve signature and expiry if present (Exclusive access gate)
         var signature = request.querystring['s'] ? request.querystring['s'].value : null;
+        var expiry = request.querystring['e'] ? request.querystring['e'].value : null;
 
         // Remove query strings to improve S3 cache hit ratio (Lambda will use normalized URI)
         request.querystring = {};
 
         if (signature) {
             request.querystring['s'] = { value: signature };
+        }
+        if (expiry) {
+            request.querystring['e'] = { value: expiry };
         }
     }
 

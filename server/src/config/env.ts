@@ -6,8 +6,8 @@ import path from 'path';
  * Environment Configuration Service
  */
 
-// 1. Manually resolve the .env path (server root)
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// 1. Manually resolve the .env path (server root - usually two levels up from src/config)
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const envSchema = z.object({
   // 2. Core Server Configuration

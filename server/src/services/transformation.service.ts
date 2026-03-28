@@ -43,7 +43,7 @@ export const transformationService = {
     // Security Check: If the original image is in the 'secure/' zone, we MUST have a valid signature
     const isSecure = originalKey.startsWith('secure/');
     if (isSecure) {
-        if (!ops.signature || !SecurityUtils.validateSignature(targetCacheKey, ops.signature)) {
+        if (!ops.signature || !SecurityUtils.validateSignature(targetCacheKey, ops.signature, ops.expires)) {
             const error = new Error("Forbidden: This asset is protected and requires a valid platform signature.");
             (error as any).name = 'ForbiddenError';
             throw error;

@@ -34,6 +34,7 @@ interface UploadedImage {
   path: string; // The path relative to /cdn/
   secure: boolean;
   key: string;
+  distributionBase: string;
 }
 
 interface ImageListProps {
@@ -86,7 +87,7 @@ export function ImageList({ images, onDelete, isSecure = false }: ImageListProps
     
     // Initialize with the current gallery signed URL (original view)
     const signatureParam = (image as any).signature ? `?s=${(image as any).signature}` : '';
-    setSignedUrl(`${distributionBase}/${image.path}${signatureParam}`);
+    setSignedUrl(`${image.distributionBase}/${image.path}${signatureParam}`);
     
     setParams({
         w: '',
@@ -105,14 +106,13 @@ export function ImageList({ images, onDelete, isSecure = false }: ImageListProps
     )
   }
 
-  // Distribution Base for assets
-  const distributionBase = process.env.NEXT_PUBLIC_CDN_URL || 'http://localhost:3001/cdn';
-
   return (
     <div className="space-y-1">
       {images.map((image) => {
-        const signatureParam = (image as any).signature ? `?s=${(image as any).signature}` : '';
-        const fullUrl = `${distributionBase}/${image.path}${signatureParam}`;
+        const sig = (image as any).signature;
+        const exp = (image as any).expires;
+        const signatureParam = sig ? `?s=${sig}${exp ? `&e=${exp}` : ''}` : '';
+        const fullUrl = `${image.distributionBase}/${image.path}${signatureParam}`;
         
         return (
           <div key={image.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 group transition-all">
