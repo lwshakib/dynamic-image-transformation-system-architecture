@@ -34,6 +34,9 @@ const envSchema = z.object({
   
   // 7. Database Configuration
   DATABASE_URL: z.string().url(),
+
+  // 8. Security Configuration
+  SIGNING_SECRET: z.string().min(16).default('placeholder-change-me-for-security'),
 });
 
 export const env = envSchema.parse(process.env);

@@ -22,9 +22,9 @@ export const s3Service = {
    * Generates a pre-signed URL for client-side uploads.
    * This allows the browser to upload directly to S3 without passing through our server.
    */
-  async getPresignedUrl(fileName: string, contentType: string) {
-    // Generate a unique key for the upload
-    const key = `uploads/${Date.now()}-${fileName}`;
+  async getPresignedUrl(fileName: string, contentType: string, isSecure: boolean = false) {
+    const prefix = isSecure ? 'secure' : 'public';
+    const key = `${prefix}/uploads/${Date.now()}-${fileName}`;
 
     const command = new PutObjectCommand({
       Bucket: env.AWS_BUCKET_NAME_IMAGES,
@@ -96,12 +96,12 @@ export const s3Service = {
       CORSConfiguration: {
         CORSRules: [
           {
-            AllowedHeaders: ['*'],
+            AllowedHeaders: ['*', 'x-amz-meta-secure'],
             // Methods needed for upload (PUT) and view (GET/HEAD)
             AllowedMethods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
             // Replace '*' with specific host in production
             AllowedOrigins: ['*'], 
-            ExposeHeaders: ['ETag'],
+            ExposeHeaders: ['ETag', 'x-amz-meta-secure'],
             MaxAgeSeconds: 3000,
           },
         ],

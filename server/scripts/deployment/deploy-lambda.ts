@@ -51,7 +51,7 @@ function updateEnvFile(key: string, value: string) {
 async function buildLambda() {
     const projectRoot = path.join(__dirname, "..");
     console.log(`\x1b[36mCalling Lambda build automation...\x1b[0m`);
-    execSync(`bun run scripts/build-lambda.ts`, {
+    execSync(`bun run lambda:build`, {
         cwd: projectRoot,
         stdio: "inherit"
     });
@@ -203,6 +203,7 @@ async function run() {
                         AWS_BUCKET_NAME_IMAGES: env.AWS_BUCKET_NAME_IMAGES,
                         AWS_BUCKET_NAME_TRANSFORMED: env.AWS_BUCKET_NAME_TRANSFORMED,
                         DATABASE_URL: env.DATABASE_URL,
+                        SIGNING_SECRET: env.SIGNING_SECRET,
                     }
                 }
             }));
@@ -221,6 +222,7 @@ async function run() {
                         AWS_BUCKET_NAME_IMAGES: env.AWS_BUCKET_NAME_IMAGES,
                         AWS_BUCKET_NAME_TRANSFORMED: env.AWS_BUCKET_NAME_TRANSFORMED,
                         DATABASE_URL: env.DATABASE_URL,
+                        SIGNING_SECRET: env.SIGNING_SECRET,
                     }
                 }
             }));

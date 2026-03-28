@@ -2,6 +2,7 @@ import sharp from "sharp";
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { env } from "../config/env";
 import { Readable } from "stream";
+import { SecurityUtils } from "../utils/security";
 
 /**
  * Image Transformation Engine
@@ -38,6 +39,16 @@ export const transformationService = {
     
     const { Body, ContentType: originalContentType } = await s3Client.send(getCommand);
     if (!Body) throw new Error("Could not fetch source image from S3.");
+
+    // Security Check: If the original image is in the 'secure/' zone, we MUST have a valid signature
+    const isSecure = originalKey.startsWith('secure/');
+    if (isSecure) {
+        if (!ops.signature || !SecurityUtils.validateSignature(targetCacheKey, ops.signature)) {
+            const error = new Error("Forbidden: This asset is protected and requires a valid platform signature.");
+            (error as any).name = 'ForbiddenError';
+            throw error;
+        }
+    }
 
     // Convert S3 Body (Readable stream) to Buffer for Sharp
     const buffer = await this.streamToBuffer(Body as Readable);

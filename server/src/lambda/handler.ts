@@ -14,6 +14,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     // OR: /cdn/original-image.jpg/original
     // @ts-ignore
     const rawPath = event.rawPath || event.path || '';
+    const queryParams = event.queryStringParameters || {};
+    const signature = queryParams.s;
     
     // Split the path to get original key and operations
     const pathParts = rawPath.split('/').map((p: string) => {
@@ -28,7 +30,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       pathParts.splice(1, 1);
     }
     
-    const originalKey = pathParts.filter(p => p).join('/'); // "folder/img with space.jpg"
+    const originalKey = pathParts.filter((p: string) => p).join('/'); // "folder/img with space.jpg"
     
     if (!originalKey) {
       return {
@@ -53,7 +55,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     // which is the rawPath without the leading slash (S3 keys don't usually start with slash)
     const targetCacheKey = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath;
 
-    const { buffer, contentType } = await transformationService.transformImage(originalKey, targetCacheKey, ops);
+    const { buffer, contentType } = await transformationService.transformImage(originalKey, targetCacheKey, {
+      ...ops,
+      signature
+    });
 
     // 4. Return the image content directly
     return {

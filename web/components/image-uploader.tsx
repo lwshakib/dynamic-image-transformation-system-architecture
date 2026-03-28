@@ -39,15 +39,18 @@ export function ImageUploader({ onSuccess, isSecure = false }: ImageUploaderProp
 
       // Step 1: Secure Ingest Handshake
       // We request a temporary authorization (Pre-signed URL) from our server.
-      const { data: { uploadUrl, publicUrl, key } } = await axios.post(`${API_URL}/images/presigned-url`, {
+      const { data: { uploadUrl, key } } = await axios.post(`${API_URL}/images/presigned-url`, {
         fileName: file.name,
-        contentType: file.type
+        contentType: file.type,
+        isSecure: isSecure
       });
 
       // Step 2: Direct-to-Storage Upload
       // Using 'axios.put' to send the raw binary directly to AWS S3.
       await axios.put(uploadUrl, file, {
-        headers: { 'Content-Type': file.type },
+        headers: { 
+          'Content-Type': file.type
+        },
         // Tracking progress real-time for the user
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || file.size));
@@ -78,7 +81,7 @@ export function ImageUploader({ onSuccess, isSecure = false }: ImageUploaderProp
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [onSuccess]);
+  }, [onSuccess, isSecure]);
 
   // Dropzone Hook Configuration: Restrict to single image uploads
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

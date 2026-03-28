@@ -39,7 +39,8 @@ export function ImageList({ images, onDelete, isSecure = false }: ImageListProps
   return (
     <div className="space-y-1">
       {images.map((image) => {
-        const fullUrl = `${distributionBase}/${image.path}`;
+        const signatureParam = (image as any).signature ? `?s=${(image as any).signature}` : '';
+        const fullUrl = `${distributionBase}/${image.path}${signatureParam}`;
         
         return (
           <div key={image.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 group transition-all">

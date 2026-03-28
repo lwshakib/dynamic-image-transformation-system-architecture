@@ -5,6 +5,7 @@ import { env } from './config/env';
 import { postgresService } from './services/postgres.service';
 import { s3Service } from './services/s3.service';
 import { transformationService } from './services/transformation.service';
+import { SecurityUtils } from './utils/security';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 
@@ -42,6 +43,7 @@ const TransformParamsSchema = z.object({
 const PresignedUrlSchema = z.object({
   fileName: z.string().min(1),
   contentType: z.string().startsWith('image/'),
+  isSecure: z.boolean().default(false),
 });
 
 // --- Routes ---
@@ -69,7 +71,12 @@ app.get('/cdn/:key(*)', async (req, res) => {
         const opsString = ops.length > 0 ? ops.join(',') : 'original';
         const targetCacheKey = `cdn/${key}/${opsString}`;
 
-        const { buffer, contentType } = await transformationService.transformImage(key, targetCacheKey, { width: w, height: h, format: f });
+        const { buffer, contentType } = await transformationService.transformImage(key, targetCacheKey, { 
+            width: w, 
+            height: h, 
+            format: f,
+            signature: req.query.s as string 
+        });
         
         // D. Send the transformed buffer back directly
         res.setHeader('Content-Type', contentType);
@@ -77,6 +84,7 @@ app.get('/cdn/:key(*)', async (req, res) => {
         res.send(buffer);
     } catch (error) {
         if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues });
+        if ((error as any).name === 'ForbiddenError') return res.status(403).json({ error: (error as any).message });
         console.error('CDN Proxy fatal error:', error);
         res.status(500).json({ error: 'Internal edge processing error' });
     }
@@ -89,7 +97,26 @@ app.get('/cdn/:key(*)', async (req, res) => {
 app.get('/images', async (req, res) => {
     try {
         const result = await postgresService.getAllImages();
-        res.json(result.rows);
+        const distributionBase = env.CLOUDFRONT_DOMAIN 
+            ? `https://${env.CLOUDFRONT_DOMAIN}/cdn`
+            : `http://localhost:${port}/cdn`;
+
+        const transformedList = result.rows.map((image) => {
+            const row = {
+                ...image,
+                distributionBase
+            };
+
+            // If image is secure, we MUST provide a platform signature
+            if (image.secure) {
+                // Generate a signature for the 'original' transformation
+                const signature = SecurityUtils.generateSignature(image.key, {});
+                (row as any).signature = signature;
+            }
+
+            return row;
+        });
+        res.json(transformedList);
     } catch (error) {
         console.error('Database retrieval error:', error);
         res.status(500).json({ error: 'Failed to synchronize gallery' });
@@ -102,8 +129,8 @@ app.get('/images', async (req, res) => {
  */
 app.post('/images/presigned-url', async (req, res) => {
   try {
-    const { fileName, contentType } = PresignedUrlSchema.parse(req.body);
-    const result = await s3Service.getPresignedUrl(fileName, contentType);
+    const { fileName, contentType, isSecure } = PresignedUrlSchema.parse(req.body);
+    const result = await s3Service.getPresignedUrl(fileName, contentType, isSecure);
     res.json(result);
   } catch (error) {
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues });
