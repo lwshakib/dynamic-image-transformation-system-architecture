@@ -86,7 +86,9 @@ export function ImageList({ images, onDelete, isSecure = false }: ImageListProps
     setIsDialogOpen(true);
     
     // Initialize with the current gallery signed URL (original view)
-    const signatureParam = (image as any).signature ? `?s=${(image as any).signature}` : '';
+    const sig = (image as any).signature;
+    const exp = (image as any).expires;
+    const signatureParam = sig ? `?s=${sig}${exp ? `&e=${exp}` : ''}` : '';
     setSignedUrl(`${image.distributionBase}/${image.path}${signatureParam}`);
     
     setParams({
@@ -210,7 +212,7 @@ export function ImageList({ images, onDelete, isSecure = false }: ImageListProps
                     <img 
                       src={signedUrl} 
                       alt="Preview" 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
