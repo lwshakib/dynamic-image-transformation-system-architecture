@@ -15,7 +15,7 @@ To set up the entire stack automatically, follow these steps:
      - `CloudFrontFullAccess`
      - `IAMFullAccess` (Required to create the Lambda execution role)
 2. **Configure Environment**:
-   - Add your `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` to `server/.env`.
+   - Add your `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` (e.g., `us-east-1`) to `server/.env`.
 3. **Run Setup**:
    ```bash
    cd server
