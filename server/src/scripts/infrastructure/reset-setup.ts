@@ -17,8 +17,8 @@ import {
   GetDistributionCommand,
   UpdateDistributionCommand,
 } from '@aws-sdk/client-cloudfront'
-import { postgresService } from '../../src/services/postgres.service'
-import { env } from '../../src/config/env'
+import { postgresService } from '../../services/postgres.service'
+import { env } from '../../config/env'
 import { removeFromEnv } from '../utils/env-utils'
 import fs from 'fs'
 import path from 'path'
@@ -129,3 +129,4 @@ async function resetAll() {
 }
 
 resetAll()
+

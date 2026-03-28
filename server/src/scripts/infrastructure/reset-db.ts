@@ -1,4 +1,4 @@
-import { postgresService } from '../../src/services/postgres.service'
+import { postgresService } from '../../services/postgres.service'
 
 /**
  * PostgreSQL Database Resetter
@@ -20,3 +20,4 @@ async function reset() {
 }
 
 reset()
+

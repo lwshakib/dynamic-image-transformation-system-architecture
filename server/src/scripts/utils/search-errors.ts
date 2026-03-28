@@ -1,5 +1,5 @@
 import { CloudWatchLogsClient, DescribeLogStreamsCommand, GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs'
-import { env } from '../../src/config/env'
+import { env } from '../../config/env'
 
 const cloudwatchClient = new CloudWatchLogsClient({
   region: env.AWS_REGION,
@@ -46,3 +46,4 @@ async function searchErrors() {
 }
 
 searchErrors()
+

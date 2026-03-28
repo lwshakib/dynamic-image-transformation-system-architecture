@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { env } from '../../src/config/env'
+import { env } from '../../config/env'
 
 const SECRET = env.SIGNING_SECRET
 
@@ -50,3 +50,4 @@ console.log('Lambda targetCacheKey:', targetCacheKey)
 // 6. Validation
 const isValid = validateSignature(targetCacheKey, sig, expires)
 console.log('Is Valid?', isValid)
+

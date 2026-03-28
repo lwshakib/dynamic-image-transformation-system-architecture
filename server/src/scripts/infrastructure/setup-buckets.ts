@@ -1,5 +1,5 @@
-import { s3Service } from '../../src/services/s3.service'
-import { env } from '../../src/config/env'
+import { s3Service } from '../../services/s3.service'
+import { env } from '../../config/env'
 
 /**
  * S3 Infrastructure Orchestrator
@@ -26,3 +26,4 @@ async function setup() {
 }
 
 setup()
+

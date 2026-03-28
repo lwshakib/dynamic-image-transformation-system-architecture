@@ -5,7 +5,7 @@ import {
   DetachRolePolicyCommand,
   ListAttachedRolePoliciesCommand,
 } from '@aws-sdk/client-iam'
-import { env } from '../../src/config/env'
+import { env } from '../../config/env'
 import { removeFromEnv } from '../utils/env-utils'
 
 const lambdaClient = new LambdaClient({ region: env.AWS_REGION })
@@ -53,3 +53,4 @@ async function run() {
 }
 
 run()
+

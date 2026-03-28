@@ -1,5 +1,5 @@
 import { LambdaClient, GetFunctionUrlConfigCommand, GetPolicyCommand } from '@aws-sdk/client-lambda'
-import { env } from '../../src/config/env'
+import { env } from '../../config/env'
 
 const lambdaClient = new LambdaClient({
   region: env.AWS_REGION,
@@ -30,3 +30,4 @@ async function check() {
 }
 
 check()
+

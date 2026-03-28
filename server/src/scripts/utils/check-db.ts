@@ -1,5 +1,5 @@
 import pg from 'pg'
-import { env } from '../../src/config/env'
+import { env } from '../../config/env'
 
 async function checkDb() {
   const client = new pg.Client({ connectionString: env.DATABASE_URL })
@@ -14,3 +14,4 @@ async function checkDb() {
 }
 
 checkDb()
+

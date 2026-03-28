@@ -1,5 +1,5 @@
 import { CloudFrontClient, GetDistributionCommand, UpdateDistributionCommand } from '@aws-sdk/client-cloudfront'
-import { env } from '../../src/config/env'
+import { env } from '../../config/env'
 import { removeFromEnv } from '../utils/env-utils'
 
 const cloudFrontClient = new CloudFrontClient({ region: env.AWS_REGION })
@@ -64,3 +64,4 @@ async function run() {
 }
 
 run()
+
