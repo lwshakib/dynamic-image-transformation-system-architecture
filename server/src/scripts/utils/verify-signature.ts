@@ -1,6 +1,6 @@
 import logger from '../../logger/winston.logger'
 import crypto from 'crypto'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 
 const SECRET = env.SIGNING_SECRET
 const key = 'secure/uploads/1774695251001-A standalone digital print of Kyoto in a refined vintage tra.jpg'

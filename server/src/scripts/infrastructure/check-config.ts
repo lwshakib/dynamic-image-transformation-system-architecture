@@ -1,6 +1,6 @@
 import logger from '../../logger/winston.logger'
 import { LambdaClient, GetFunctionUrlConfigCommand, GetPolicyCommand } from '@aws-sdk/client-lambda'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 
 const lambdaClient = new LambdaClient({
   region: env.AWS_REGION,

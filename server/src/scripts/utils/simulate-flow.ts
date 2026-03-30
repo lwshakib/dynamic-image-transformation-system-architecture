@@ -1,6 +1,6 @@
 import logger from '../../logger/winston.logger'
 import crypto from 'crypto'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 
 const SECRET = env.SIGNING_SECRET
 

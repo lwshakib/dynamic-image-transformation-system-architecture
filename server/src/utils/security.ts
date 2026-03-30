@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { env } from '../config/env'
+import { env } from '../envs'
 
 /**
  * SecurityUtils: HMAC-based Cryptographic Signing

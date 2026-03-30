@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { z } from 'zod'
-import { env } from '../config/env'
+import { env } from '../envs'
 import { postgresService } from '../services/postgres.service'
 import { s3Service } from '../services/s3.service'
 import { transformationService } from '../services/transformation.service'

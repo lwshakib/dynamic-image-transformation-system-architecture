@@ -1,5 +1,5 @@
 import logger from '../../logger/winston.logger'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 
 logger.info(
   'Loaded SIGNING_SECRET:',

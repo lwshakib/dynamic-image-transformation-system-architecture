@@ -1,6 +1,6 @@
 import logger from '../../logger/winston.logger'
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 
 const s3Client = new S3Client({
   region: env.AWS_REGION,

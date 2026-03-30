@@ -8,7 +8,7 @@ import {
   PutBucketCorsCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl as s3GetSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { env } from '../config/env'
+import { env } from '../envs'
 import logger from '../logger/winston.logger'
 
 /**

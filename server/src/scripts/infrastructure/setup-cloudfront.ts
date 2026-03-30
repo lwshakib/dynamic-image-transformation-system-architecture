@@ -9,7 +9,7 @@ import {
   UpdateFunctionCommand,
   PublishFunctionCommand,
 } from '@aws-sdk/client-cloudfront'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 import fs from 'fs'
 import path from 'path'
 import { updateEnvFile } from '../utils/env-utils'

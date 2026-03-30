@@ -1,6 +1,6 @@
 import logger from '../../logger/winston.logger'
 import { CloudWatchLogsClient, DescribeLogStreamsCommand, GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 
 const cloudwatchClient = new CloudWatchLogsClient({
   region: env.AWS_REGION,

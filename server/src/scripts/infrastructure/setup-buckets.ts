@@ -1,6 +1,6 @@
 import logger from '../../logger/winston.logger'
 import { s3Service } from '../../services/s3.service'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 
 /**
  * S3 Infrastructure Orchestrator

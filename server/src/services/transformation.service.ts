@@ -1,6 +1,6 @@
 import sharp from 'sharp'
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
-import { env } from '../config/env'
+import { env } from '../envs'
 import { Readable } from 'stream'
 import logger from '../logger/winston.logger'
 import { SecurityUtils } from '../utils/security'

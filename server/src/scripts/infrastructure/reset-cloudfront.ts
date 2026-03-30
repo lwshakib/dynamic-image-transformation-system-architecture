@@ -1,6 +1,6 @@
 import logger from '../../logger/winston.logger'
 import { CloudFrontClient, GetDistributionCommand, UpdateDistributionCommand } from '@aws-sdk/client-cloudfront'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 import { removeFromEnv } from '../utils/env-utils'
 
 const cloudFrontClient = new CloudFrontClient({ region: env.AWS_REGION })

@@ -1,6 +1,6 @@
 import logger from '../../logger/winston.logger'
 import pg from 'pg'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 
 async function checkDb() {
   const client = new pg.Client({ connectionString: env.DATABASE_URL })

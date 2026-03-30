@@ -19,7 +19,7 @@ import {
   UpdateDistributionCommand,
 } from '@aws-sdk/client-cloudfront'
 import { postgresService } from '../../services/postgres.service'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 import { removeFromEnv } from '../utils/env-utils'
 import fs from 'fs'
 import path from 'path'

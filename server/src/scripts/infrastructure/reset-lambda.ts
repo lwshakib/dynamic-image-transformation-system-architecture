@@ -6,7 +6,7 @@ import {
   DetachRolePolicyCommand,
   ListAttachedRolePoliciesCommand,
 } from '@aws-sdk/client-iam'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 import { removeFromEnv } from '../utils/env-utils'
 
 const lambdaClient = new LambdaClient({ region: env.AWS_REGION })

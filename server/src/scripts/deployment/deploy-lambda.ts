@@ -15,7 +15,7 @@ import fs from 'fs'
 import path from 'path'
 import archiver from 'archiver'
 import { execSync } from 'child_process'
-import { env } from '../../config/env'
+import { env } from '../../envs'
 import { updateEnvFile } from '../utils/env-utils'
 
 /**
