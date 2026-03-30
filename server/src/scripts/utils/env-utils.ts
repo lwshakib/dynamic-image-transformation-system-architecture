@@ -39,7 +39,7 @@ export function updateEnvFile(key: string, value: string) {
     if (content.match(regex)) {
       content = content.replace(regex, newLine)
     } else {
-      content += `\n# Automated Infrastructure ${key}\n${newLine}\n`
+      content += `\n${newLine}\n`
     }
 
     fs.writeFileSync(envPath, content)
