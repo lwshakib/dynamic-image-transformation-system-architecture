@@ -1,7 +1,7 @@
 import logger from '../../logger/winston.logger'
 import { CloudFrontClient, GetDistributionCommand, UpdateDistributionCommand } from '@aws-sdk/client-cloudfront'
 import { env } from '../../envs'
-import { resetEnvFile, getAwsConfig } from '../utils/env-utils'
+import { resetEnvFile, getAwsConfig, INFRA_PLACEHOLDERS } from '../utils/env-utils'
 
 const cloudFrontClient = new CloudFrontClient(getAwsConfig())
 
@@ -9,9 +9,11 @@ async function run() {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
   logger.info('\n\x1b[31m\x1b[1m=== CloudFront Decommissioner ===\x1b[0m')
   const distributionId = env.CLOUDFRONT_DISTRIBUTION_ID
+  const isPlaceholder = distributionId === INFRA_PLACEHOLDERS.CLOUDFRONT_DISTRIBUTION_ID
 
-  if (!distributionId) {
-    logger.info('No CLOUDFRONT_DISTRIBUTION_ID found in environment. Skipping.')
+  if (!distributionId || isPlaceholder) {
+    logger.info('No active CloudFront Distribution found to decommission. Skipping.')
+    resetEnvFile(['CLOUDFRONT_DISTRIBUTION_ID', 'CLOUDFRONT_DOMAIN'])
     return
   }
 
@@ -60,7 +62,12 @@ async function run() {
     // Reset keys in .env
     resetEnvFile(['CLOUDFRONT_DISTRIBUTION_ID', 'CLOUDFRONT_DOMAIN'])
   } catch (e: any) {
-    logger.error('\x1b[31mCloudFront Reset Error:\x1b[0m', e.message)
+    if (e.name === 'NoSuchDistribution') {
+      logger.info(`Distribution ${distributionId} not found in AWS. It may have been manually deleted.`)
+      resetEnvFile(['CLOUDFRONT_DISTRIBUTION_ID', 'CLOUDFRONT_DOMAIN'])
+    } else {
+      logger.error('\x1b[31mCloudFront Reset Error:\x1b[0m', e.message)
+    }
   }
 }
 

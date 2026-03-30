@@ -90,6 +90,22 @@ async function setupCloudFrontFunction() {
   return publishRes.FunctionSummary?.FunctionMetadata?.FunctionARN
 }
 
+async function createNewDistribution(config: any) {
+  logger.info('Creating new High-Performance Distribution...')
+  const createRes = await cloudFrontClient.send(
+    new CreateDistributionCommand({
+      DistributionConfig: config as any,
+    })
+  )
+
+  const finalId = createRes.Distribution?.Id || ''
+  const finalDomain = createRes.Distribution?.DomainName || ''
+
+  updateEnvFile('CLOUDFRONT_DISTRIBUTION_ID', finalId)
+  updateEnvFile('CLOUDFRONT_DOMAIN', finalDomain)
+  logger.info(`\x1b[32mSUCCESS: Edge Infrastructure Ready!\x1b[0m`)
+}
+
 async function run() {
   logger.info('\x1b[36m=== High-Performance Edge Distribution Initializer ===\x1b[0m')
 
@@ -179,51 +195,46 @@ async function run() {
     const isPlaceholder = distributionId === INFRA_PLACEHOLDERS.CLOUDFRONT_DISTRIBUTION_ID
 
     if (distributionId && !isPlaceholder) {
-      logger.info(`Updating existing Distribution: ${distributionId}...`)
-      const { Distribution, ETag } = await cloudFrontClient.send(new GetDistributionCommand({ Id: distributionId }))
+      try {
+        logger.info(`Validating existing Distribution: ${distributionId}...`)
+        const { Distribution, ETag } = await cloudFrontClient.send(new GetDistributionCommand({ Id: distributionId }))
 
-      if (!Distribution?.DistributionConfig) throw new Error('Could not find distribution config')
+        if (!Distribution?.DistributionConfig) throw new Error('Could not find distribution config')
 
-      const finalConfig = {
-        ...Distribution.DistributionConfig,
-        ...config,
-        // Keep these from existing
-        CallerReference: Distribution.DistributionConfig.CallerReference,
-        Aliases: Distribution.DistributionConfig.Aliases,
-        DefaultRootObject: Distribution.DistributionConfig.DefaultRootObject,
-        ViewerCertificate: Distribution.DistributionConfig.ViewerCertificate,
-        Origins: config.Origins,
-        OriginGroups: config.OriginGroups,
-        DefaultCacheBehavior: {
-          ...Distribution.DistributionConfig.DefaultCacheBehavior,
-          ...config.DefaultCacheBehavior,
-        },
+        logger.info('Updating existing Distribution...')
+        const finalConfig = {
+          ...Distribution.DistributionConfig,
+          ...config,
+          CallerReference: Distribution.DistributionConfig.CallerReference,
+          Aliases: Distribution.DistributionConfig.Aliases,
+          DefaultRootObject: Distribution.DistributionConfig.DefaultRootObject,
+          ViewerCertificate: Distribution.DistributionConfig.ViewerCertificate,
+          Origins: config.Origins,
+          OriginGroups: config.OriginGroups,
+          DefaultCacheBehavior: {
+            ...Distribution.DistributionConfig.DefaultCacheBehavior,
+            ...config.DefaultCacheBehavior,
+          },
+        }
+
+        const updateRes = await cloudFrontClient.send(
+          new UpdateDistributionCommand({
+            Id: distributionId,
+            IfMatch: ETag,
+            DistributionConfig: finalConfig as any,
+          })
+        )
+
+        logger.info(`\x1b[32mSuccessfully updated distribution!\x1b[0m`)
+        updateEnvFile('CLOUDFRONT_DOMAIN', updateRes.Distribution?.DomainName || '')
+      } catch (error: any) {
+        if (error.name === 'NoSuchDistribution') {
+          logger.warn(`Distribution ${distributionId} not found in AWS. Re-provisioning...`)
+          await createNewDistribution(config)
+        } else throw error
       }
-
-      const updateRes = await cloudFrontClient.send(
-        new UpdateDistributionCommand({
-          Id: distributionId,
-          IfMatch: ETag,
-          DistributionConfig: finalConfig as any,
-        })
-      )
-
-      logger.info(`\x1b[32mSuccessfully updated distribution!\x1b[0m`)
-      updateEnvFile('CLOUDFRONT_DOMAIN', updateRes.Distribution?.DomainName || '')
     } else {
-      logger.info('Creating new High-Performance Distribution...')
-      const createRes = await cloudFrontClient.send(
-        new CreateDistributionCommand({
-          DistributionConfig: config as any,
-        })
-      )
-
-      const finalId = createRes.Distribution?.Id || ''
-      const finalDomain = createRes.Distribution?.DomainName || ''
-
-      updateEnvFile('CLOUDFRONT_DISTRIBUTION_ID', finalId)
-      updateEnvFile('CLOUDFRONT_DOMAIN', finalDomain)
-      logger.info(`\x1b[32mSUCCESS: Edge Infrastructure Ready!\x1b[0m`)
+      await createNewDistribution(config)
     }
 
     // --- Propagation Warning ---

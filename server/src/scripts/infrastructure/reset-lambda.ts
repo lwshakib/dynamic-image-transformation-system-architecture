@@ -19,9 +19,13 @@ async function deleteLambda() {
   logger.info(`Decommissioning Lambda function "${functionName}"...`)
   try {
     await lambdaClient.send(new DeleteFunctionCommand({ FunctionName: functionName }))
-    logger.info('Lambda deleted.')
+    logger.info('Lambda function deleted successfully.')
   } catch (e: any) {
-    logger.warn('Lambda Cleanup Error:', e.message)
+    if (e.name === 'ResourceNotFoundException') {
+      logger.info(`Lambda function "${functionName}" not found. It may have been already deleted.`)
+    } else {
+      logger.warn('Lambda Cleanup Error:', e.message)
+    }
   }
 }
 
@@ -35,9 +39,13 @@ async function deleteRole() {
       }
     }
     await iamClient.send(new DeleteRoleCommand({ RoleName: roleName }))
-    logger.info('IAM Role decommissioned.')
+    logger.info('IAM Role decommissioned successfully.')
   } catch (e: any) {
-    logger.warn('IAM Cleanup Error:', e.message)
+    if (e.name === 'NoSuchEntity') {
+      logger.info(`IAM Role "${roleName}" not found. It may have been already deleted.`)
+    } else {
+      logger.warn('IAM Cleanup Error:', e.message)
+    }
   }
 }
 
