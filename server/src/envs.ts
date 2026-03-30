@@ -8,7 +8,7 @@ export const INFRA_PLACEHOLDERS = {
     AWS_LAMBDA_ROLE_ARN: 'arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME',
     AWS_LAMBDA_FUNCTION_URL: 'https://FUNCTION_ID.lambda-url.REGION.on.aws/',
     CLOUDFRONT_DISTRIBUTION_ID: 'DISTRIBUTION_ID',
-    CLOUDFRONT_DOMAIN: 'DISTRIBUTION_ID.cloudfront.net',
+    CLOUDFRONT_DOMAIN: 'DISTRIBUTION_SUBDOMAIN.cloudfront.net',
 } as const;
 
 /**
