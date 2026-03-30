@@ -8,7 +8,7 @@ export const INFRA_PLACEHOLDERS = {
     AWS_LAMBDA_ROLE_ARN: 'arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME',
     AWS_LAMBDA_FUNCTION_URL: 'https://FUNCTION_ID.lambda-url.REGION.on.aws/',
     CLOUDFRONT_DISTRIBUTION_ID: 'DISTRIBUTION_ID',
-    CLOUDFRONT_DOMAIN: 'd111111abcdef8.cloudfront.net',
+    CLOUDFRONT_DOMAIN: 'DISTRIBUTION_ID.cloudfront.net',
 } as const;
 
 /**
@@ -27,7 +27,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
  * @returns The value of the environment variable, the default value, or an empty string
  * @throws Error if a required variable is missing and no default is provided
  */
-function getEnv(key: string, required: boolean = false, defaultValue?: string): string {
+function getEnv(key: string, required: boolean = true, defaultValue?: string): string {
     const value = process.env[key];
     if (required && !value && defaultValue === undefined) {
         // Halt everything if a critical configuration is missing
