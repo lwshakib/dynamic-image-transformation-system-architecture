@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import { env } from '../../config/env'
 
@@ -16,17 +17,17 @@ const s3Client = new S3Client({
 
 async function listBucket() {
   try {
-    console.log(`Listing bucket: ${env.AWS_BUCKET_NAME_IMAGES}`)
+    logger.info(`Listing bucket: ${env.AWS_BUCKET_NAME_IMAGES}`)
     const res = await s3Client.send(
       new ListObjectsV2Command({
         Bucket: env.AWS_BUCKET_NAME_IMAGES,
         Prefix: 'uploads/',
       })
     )
-    console.log('Objects found:')
-    res.Contents?.forEach((obj) => console.log(` - ${obj.Key} (${obj.Size} bytes)`))
+    logger.info('Objects found:')
+    res.Contents?.forEach((obj) => logger.info(` - ${obj.Key} (${obj.Size} bytes)`))
   } catch (e: any) {
-    console.error('Error:', e.message)
+    logger.error('Error:', e.message)
   }
 }
 

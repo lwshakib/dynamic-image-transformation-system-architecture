@@ -2,6 +2,7 @@ import sharp from 'sharp'
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { env } from '../config/env'
 import { Readable } from 'stream'
+import logger from '../logger/winston.logger'
 import { SecurityUtils } from '../utils/security'
 
 /**
@@ -115,7 +116,7 @@ export const transformationService = {
     })
     await s3Client.send(putCommand)
 
-    console.log(`Successfully transformed and cached at: ${targetCacheKey}`)
+    logger.info(`Successfully transformed and cached at: ${targetCacheKey}`)
     return { buffer: resultBuffer, contentType }
   },
 

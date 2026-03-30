@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import {
   CloudFrontClient,
   CreateDistributionCommand,
@@ -46,10 +47,10 @@ async function setupCloudFrontFunction() {
     .replace(/\/\/ @ts-ignore[\s\S]*$/, '') // Strip the module.exports block at the end
 
   try {
-    console.log(`Checking CloudFront Function: ${functionName}...`)
+    logger.info(`Checking CloudFront Function: ${functionName}...`)
     const { FunctionSummary, ETag } = await cloudFrontClient.send(new DescribeFunctionCommand({ Name: functionName }))
 
-    console.log('Updating CloudFront Function...')
+    logger.info('Updating CloudFront Function...')
     await cloudFrontClient.send(
       new UpdateFunctionCommand({
         Name: functionName,
@@ -63,7 +64,7 @@ async function setupCloudFrontFunction() {
     )
   } catch (error: any) {
     if (error.name === 'NoSuchFunctionExists') {
-      console.log('Creating new CloudFront Function...')
+      logger.info('Creating new CloudFront Function...')
       await cloudFrontClient.send(
         new CreateFunctionCommand({
           Name: functionName,
@@ -90,13 +91,13 @@ async function setupCloudFrontFunction() {
 }
 
 async function run() {
-  console.log('\x1b[36m=== High-Performance Edge Distribution Initializer ===\x1b[0m')
+  logger.info('\x1b[36m=== High-Performance Edge Distribution Initializer ===\x1b[0m')
 
   try {
     // 1. Setup the CloudFront Function
     const functionArn = await setupCloudFrontFunction()
     if (!functionArn) throw new Error('Failed to deploy CloudFront Function.')
-    console.log(`CloudFront Function Ready: ${functionArn}`)
+    logger.info(`CloudFront Function Ready: ${functionArn}`)
 
     // 2. Prepare Origin Configuration
     const lambdaUrl = env.AWS_LAMBDA_FUNCTION_URL || ''
@@ -177,7 +178,7 @@ async function run() {
     const distributionId = env.CLOUDFRONT_DISTRIBUTION_ID
 
     if (distributionId) {
-      console.log(`Updating existing Distribution: ${distributionId}...`)
+      logger.info(`Updating existing Distribution: ${distributionId}...`)
       const { Distribution, ETag } = await cloudFrontClient.send(new GetDistributionCommand({ Id: distributionId }))
 
       if (!Distribution?.DistributionConfig) throw new Error('Could not find distribution config')
@@ -206,10 +207,10 @@ async function run() {
         })
       )
 
-      console.log(`\x1b[32mSuccessfully updated distribution!\x1b[0m`)
+      logger.info(`\x1b[32mSuccessfully updated distribution!\x1b[0m`)
       updateEnvFile('CLOUDFRONT_DOMAIN', updateRes.Distribution?.DomainName || '')
     } else {
-      console.log('Creating new High-Performance Distribution...')
+      logger.info('Creating new High-Performance Distribution...')
       const createRes = await cloudFrontClient.send(
         new CreateDistributionCommand({
           DistributionConfig: config as any,
@@ -221,17 +222,17 @@ async function run() {
 
       updateEnvFile('CLOUDFRONT_DISTRIBUTION_ID', finalId)
       updateEnvFile('CLOUDFRONT_DOMAIN', finalDomain)
-      console.log(`\x1b[32mSUCCESS: Edge Infrastructure Ready!\x1b[0m`)
+      logger.info(`\x1b[32mSUCCESS: Edge Infrastructure Ready!\x1b[0m`)
     }
 
     // --- Propagation Warning ---
-    console.log('\n\x1b[33m\x1b[1m⚠️  IMPORTANT: Propagation Period Required ⚠️\x1b[0m')
-    console.log('CloudFront distributions take 15-20 minutes to fully propagate globally.')
-    console.log("Until the status in the AWS Console reaches 'Deployed', you may experience")
-    console.log("'403 Forbidden' or '404 Not Found' errors.")
-    console.log('\nPlease monitor the AWS CloudFront Dashboard before testing transformations.')
+    logger.info('\n\x1b[33m\x1b[1m⚠️  IMPORTANT: Propagation Period Required ⚠️\x1b[0m')
+    logger.info('CloudFront distributions take 15-20 minutes to fully propagate globally.')
+    logger.info("Until the status in the AWS Console reaches 'Deployed', you may experience")
+    logger.info("'403 Forbidden' or '404 Not Found' errors.")
+    logger.info('\nPlease monitor the AWS CloudFront Dashboard before testing transformations.')
   } catch (error: any) {
-    console.error(`\n\x1b[31mFATAL: CloudFront Setup Error:\x1b[0m\n${error.message}`)
+    logger.error(`\n\x1b[31mFATAL: CloudFront Setup Error:\x1b[0m\n${error.message}`)
     process.exit(1)
   }
 }

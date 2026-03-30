@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import fs from 'fs'
 import path from 'path'
 
@@ -22,9 +23,9 @@ export function updateEnvFile(key: string, value: string) {
     }
 
     fs.writeFileSync(envPath, content)
-    console.log(`\x1b[32mUpdated .env: ${key}=${value}\x1b[0m`)
+    logger.info(`\x1b[32mUpdated .env: ${key}=${value}\x1b[0m`)
   } catch (error: any) {
-    console.warn(`Could not automatically update .env for ${key}: ${error.message}`)
+    logger.warn(`Could not automatically update .env for ${key}: ${error.message}`)
   }
 }
 
@@ -48,8 +49,8 @@ export function removeFromEnv(keys: string[]) {
     const finalContent = filteredLines.join('\n').replace(/\n{3,}/g, '\n\n')
 
     fs.writeFileSync(envPath, finalContent)
-    console.log(`\x1b[32mScrubbed keys from .env: ${keys.join(', ')}\x1b[0m`)
+    logger.info(`\x1b[32mScrubbed keys from .env: ${keys.join(', ')}\x1b[0m`)
   } catch (error: any) {
-    console.warn(`Could not automatically scrub .env: ${error.message}`)
+    logger.warn(`Could not automatically scrub .env: ${error.message}`)
   }
 }

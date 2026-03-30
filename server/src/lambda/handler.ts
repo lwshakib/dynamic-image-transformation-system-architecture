@@ -1,12 +1,13 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { transformationService } from '../services/transformation.service'
+import logger from '../logger/winston.logger'
 
 /**
  * AWS Lambda Execution Handler (Blog-Inspired Architecture)
  * Optimized for CloudFront Origin Failover + CloudFront Functions path rewriting.
  */
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  console.log('Incoming Event:', JSON.stringify(event, null, 2))
+  logger.info(`Incoming Event: ${JSON.stringify(event, null, 2)}`)
 
   try {
     // 1. Path Parsing (Supports normalized paths from CloudFront Function)
@@ -74,7 +75,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       // Decode potential %20 or + characters
       targetCacheKey = decodeURIComponent(targetCacheKey.replace(/\+/g, ' '))
     } catch (e) {
-      console.warn('Path decoding failed:', e)
+      logger.warn(`Path decoding failed: ${e}`)
     }
 
     const { buffer, contentType } = await transformationService.transformImage(originalKey, targetCacheKey, {
@@ -95,7 +96,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       isBase64Encoded: true,
     }
   } catch (error: any) {
-    console.error('Lambda Transformation Panic:', error)
+    logger.error(`Lambda Transformation Panic: ${error.message}`)
 
     if (error.name === 'NoSuchKey') {
       return {

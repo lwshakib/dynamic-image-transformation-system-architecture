@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import { transformationService } from '../../services/transformation.service'
 import fs from 'fs'
 import path from 'path'
@@ -18,19 +19,19 @@ async function testTransformation() {
   const imagePath = path.join(process.cwd(), imageName)
 
   if (!fs.existsSync(imagePath)) {
-    console.error(`Image not found at ${imagePath}`)
+    logger.error(`Image not found at ${imagePath}`)
     // Try searching for it
     const files = fs.readdirSync(process.cwd())
     const found = files.find((f) => f.includes('A cinematic photo'))
     if (found) {
-      console.log(`Found similar file: ${found}`)
+      logger.info(`Found similar file: ${found}`)
     } else {
       return
     }
   }
 
   const key = `uploads/${Date.now()}-test-image.jpg`
-  console.log(`Uploading to S3 as: ${key}`)
+  logger.info(`Uploading to S3 as: ${key}`)
 
   const imageBuffer = fs.readFileSync(imagePath)
   await s3Client.send(
@@ -42,20 +43,20 @@ async function testTransformation() {
     })
   )
 
-  console.log('Testing transformation...')
+  logger.info('Testing transformation...')
   try {
     const ops = { width: 300, format: 'webp' }
     const targetCacheKey = `cdn/${key}/width=300,format=webp`
 
     const result = await transformationService.transformImage(key, targetCacheKey, ops)
-    console.log('Transformation SUCCESS!')
-    console.log('Result Content-Type:', result.contentType)
+    logger.info('Transformation SUCCESS!')
+    logger.info('Result Content-Type:', result.contentType)
 
     const outputPath = path.join(process.cwd(), 'test-output.webp')
     fs.writeFileSync(outputPath, result.buffer)
-    console.log(`Output saved to ${outputPath}`)
+    logger.info(`Output saved to ${outputPath}`)
   } catch (error: any) {
-    console.error('Transformation FAILED:', error)
+    logger.error('Transformation FAILED:', error)
   }
 }
 

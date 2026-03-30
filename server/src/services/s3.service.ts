@@ -9,6 +9,7 @@ import {
 } from '@aws-sdk/client-s3'
 import { getSignedUrl as s3GetSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { env } from '../config/env'
+import logger from '../logger/winston.logger'
 
 /**
  * Amazon S3 Service
@@ -79,17 +80,17 @@ export const s3Service = {
    */
   async createBucket(bucketName: string) {
     try {
-      console.log(`Checking if bucket "${bucketName}" exists...`)
+      logger.info(`Checking if bucket "${bucketName}" exists...`)
       // HeadBucket throws 404 if it doesn't exist
       await s3Client.send(new HeadBucketCommand({ Bucket: bucketName }))
-      console.log(`Bucket "${bucketName}" already exists.`)
+      logger.info(`Bucket "${bucketName}" already exists.`)
     } catch (error: any) {
       if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
-        console.log(`Creating bucket "${bucketName}"...`)
+        logger.info(`Creating bucket "${bucketName}"...`)
         await s3Client.send(new CreateBucketCommand({ Bucket: bucketName }))
-        console.log(`Bucket "${bucketName}" created successfully.`)
+        logger.info(`Bucket "${bucketName}" created successfully.`)
       } else {
-        console.error(`Error checking/creating bucket "${bucketName}":`, error.message)
+        logger.error(`Error checking/creating bucket "${bucketName}": ${error.message}`)
         throw error
       }
     }
@@ -100,7 +101,7 @@ export const s3Service = {
    * Essential for browser-to-S3 uploads.
    */
   async setupCors(bucketName: string) {
-    console.log(`Configuring CORS for bucket "${bucketName}"...`)
+    logger.info(`Configuring CORS for bucket "${bucketName}"...`)
     const command = new PutBucketCorsCommand({
       Bucket: bucketName,
       CORSConfiguration: {
@@ -118,6 +119,6 @@ export const s3Service = {
       },
     })
     await s3Client.send(command)
-    console.log(`CORS configured successfully for "${bucketName}".`)
+    logger.info(`CORS configured successfully for "${bucketName}".`)
   },
 }

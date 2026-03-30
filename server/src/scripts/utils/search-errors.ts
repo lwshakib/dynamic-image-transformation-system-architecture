@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import { CloudWatchLogsClient, DescribeLogStreamsCommand, GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs'
 import { env } from '../../config/env'
 
@@ -13,7 +14,7 @@ const logGroupName = '/aws/lambda/image-transformation-engine'
 
 async function searchErrors() {
   try {
-    console.log('Fetching recent log streams...')
+    logger.info('Fetching recent log streams...')
     const streams = await cloudwatchClient.send(
       new DescribeLogStreamsCommand({
         logGroupName: logGroupName,
@@ -24,7 +25,7 @@ async function searchErrors() {
     )
 
     for (const stream of streams.logStreams || []) {
-      console.log('\n--- Checking Stream:', stream.logStreamName, '---')
+      logger.info('\n--- Checking Stream:', stream.logStreamName, '---')
       const events = await cloudwatchClient.send(
         new GetLogEventsCommand({
           logGroupName: logGroupName,
@@ -36,12 +37,12 @@ async function searchErrors() {
       events.events?.forEach((event) => {
         const msg = event.message || ''
         if (msg.includes('Incoming Event') || msg.includes('Error') || msg.includes('Forbidden')) {
-          console.log(`[${new Date(event.timestamp!).toISOString()}] ${msg}`)
+          logger.info(`[${new Date(event.timestamp!).toISOString()}] ${msg}`)
         }
       })
     }
   } catch (e: any) {
-    console.error('Error:', e.message)
+    logger.error('Error:', e.message)
   }
 }
 

@@ -1,5 +1,6 @@
 import { Pool } from 'pg'
 import { env } from '../config/env'
+import logger from '../logger/winston.logger'
 
 /**
  * PostgreSQL Service
@@ -19,7 +20,7 @@ class PostgresService {
 
     // 2. Global DB error handling to catch unexpected pool disconnects
     this.pool.on('error', (err) => {
-      console.error('Unexpected error on idle client', err)
+      logger.error(`Unexpected error on idle client: ${err.message}`)
       process.exit(-1)
     })
   }

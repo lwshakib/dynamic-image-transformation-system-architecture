@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import { postgresService } from '../../services/postgres.service'
 
 /**
@@ -5,14 +6,14 @@ import { postgresService } from '../../services/postgres.service'
  * Exclusively wipes the image registry to allow for a clean local state.
  */
 async function reset() {
-  console.log('\x1b[31m=== Database Registry Resetter ===\x1b[0m')
-  console.log("Dropping 'images' table...")
+  logger.info('\x1b[31m=== Database Registry Resetter ===\x1b[0m')
+  logger.info("Dropping 'images' table...")
 
   try {
     await postgresService.query('DROP TABLE IF EXISTS images')
-    console.log('\x1b[32m\x1b[1mSUCCESS: Database table removed.\x1b[0m')
+    logger.info('\x1b[32m\x1b[1mSUCCESS: Database table removed.\x1b[0m')
   } catch (e: any) {
-    console.error(`\x1b[31mFATAL: Database Reset failed:\x1b[0m\n${e.message}`)
+    logger.error(`\x1b[31mFATAL: Database Reset failed:\x1b[0m\n${e.message}`)
     process.exit(1)
   } finally {
     await postgresService.close()

@@ -8,6 +8,11 @@ import { transformationService } from './services/transformation.service'
 import { SecurityUtils } from './utils/security'
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { Readable } from 'stream'
+import { asyncHandler } from './utils/asyncHandler'
+import logger from './logger/winston.logger'
+import morganMiddleware from './logger/morgan.logger'
+import { errorHandler } from './middlewares/error.middlewares'
+import { ApiError } from './utils/ApiError'
 
 /**
  * Image Transformation Server (Express)
@@ -33,6 +38,8 @@ const s3Client = new S3Client({
 app.use(cors())
 // 2. Standard JSON body parsing for image confirmation and metadata
 app.use(express.json())
+// 3. HTTP Request Logging
+app.use(morganMiddleware)
 
 // 3. Transformation Query Validation (w=width, h=height, f=format)
 const TransformParamsSchema = z.object({
@@ -61,11 +68,12 @@ const PresignedUrlSchema = z.object({
  * Custom Image Proxy: Dynamically transforms images by path and query strings.
  * Implementation: Streams data directly so the browser URL stays as the "CDN" link.
  */
-app.get('/cdn/:key(*)', async (req, res) => {
-  try {
+app.get(
+  '/cdn/:key(*)',
+  asyncHandler(async (req, res) => {
     // A. Capture the key directly from the wildcard path
     const { key } = req.params as any
-    if (!key) return res.status(400).json({ error: 'Missing image key' })
+    if (!key) throw new ApiError(400, 'Missing image key')
 
     // B. Parse transformation parameters from the URL query string
     const { w, h, f, q, e } = req.query as any
@@ -74,7 +82,7 @@ app.get('/cdn/:key(*)', async (req, res) => {
     if (e) {
       const currentTime = Math.floor(Date.now() / 1000)
       if (parseInt(e) < currentTime) {
-        return res.status(403).json({ error: 'Forbidden: This link has expired.' })
+        throw new ApiError(403, 'Forbidden: This link has expired.')
       }
     }
 
@@ -89,33 +97,29 @@ app.get('/cdn/:key(*)', async (req, res) => {
     const opsString = ops.length > 0 ? ops.join(',') : 'original'
     const targetCacheKey = `cdn/${key}/${opsString}`
 
-    const { buffer, contentType } = await transformationService.transformImage(key, targetCacheKey, {
-      width: w,
-      height: h,
-      format: f,
-      quality: q,
-      signature: req.query.s as string,
-      expires: e,
+    const { buffer, contentType } = await transformationService.transformImage(key as string, targetCacheKey, {
+      width: w as string | undefined,
+      height: h as string | undefined,
+      format: f as string | undefined,
+      quality: q as string | undefined,
+      signature: (req.query.s as string) || undefined,
+      expires: e as string | undefined,
     })
 
     // D. Send the transformed buffer back directly
     res.setHeader('Content-Type', contentType)
     res.setHeader('Cache-Control', 'public, max-age=3600')
     res.send(buffer)
-  } catch (error) {
-    if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues })
-    if ((error as any).name === 'ForbiddenError') return res.status(403).json({ error: (error as any).message })
-    console.error('CDN Proxy fatal error:', error)
-    res.status(500).json({ error: 'Internal edge processing error' })
-  }
-})
+  })
+)
 
 /**
  * GET /images
  * Dashboard Gallery API: Lists all available transformed assets.
  */
-app.get('/images', async (req, res) => {
-  try {
+app.get(
+  '/images',
+  asyncHandler(async (req, res) => {
     const result = await postgresService.getAllImages()
     const distributionBase = env.CLOUDFRONT_DOMAIN
       ? `https://${env.CLOUDFRONT_DOMAIN}/cdn`
@@ -138,45 +142,40 @@ app.get('/images', async (req, res) => {
       return row
     })
     res.json(transformedList)
-  } catch (error) {
-    console.error('Database retrieval error:', error)
-    res.status(500).json({ error: 'Failed to synchronize gallery' })
-  }
-})
+  })
+)
 
 /**
  * POST /images/presigned-url
  * Secure Ingest Workflow: Generates a temporary S3 upload link for the frontend.
  */
-app.post('/images/presigned-url', async (req, res) => {
-  try {
+app.post(
+  '/images/presigned-url',
+  asyncHandler(async (req, res) => {
     const { fileName, contentType, isSecure } = PresignedUrlSchema.parse(req.body)
     const result = await s3Service.getPresignedUrl(fileName, contentType, isSecure)
     res.json(result)
-  } catch (error) {
-    if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues })
-    console.error('Failed to generate pre-signed link:', error)
-    res.status(500).json({ error: 'Ingest logic error' })
-  }
-})
+  })
+)
 
 /**
  * GET /images/:id/sign
  * On-Demand Signing: Generates a valid HMAC signature for a specific transformation.
  * Used by the frontend Transformation Dialog to preview secure assets.
  */
-app.get('/images/:id/sign', async (req, res) => {
-  try {
+app.get(
+  '/images/:id/sign',
+  asyncHandler(async (req, res) => {
     const { id } = req.params
     const { w, h, f, q } = req.query as any
 
-    const image = await postgresService.getImageById(id)
-    if (!image) return res.status(404).json({ error: 'Asset not found' })
+    const image = await postgresService.getImageById(id as string)
+    if (!image) throw new ApiError(404, 'Asset not found')
 
     const expires = (Math.floor(Date.now() / 1000) + 3600).toString() // 1-hour window
 
     // Generate the signature using the same utility as the gallery
-    const signature = SecurityUtils.generateSignature(image.key, { w, h, f, q, e: expires })
+    const signature = SecurityUtils.generateSignature(image.key as string, { w, h, f, q, e: expires })
 
     const distributionBase = env.CLOUDFRONT_DOMAIN
       ? `https://${env.CLOUDFRONT_DOMAIN}/cdn`
@@ -194,50 +193,46 @@ app.get('/images/:id/sign', async (req, res) => {
       signature,
       signedUrl: `${distributionBase}/${image.path}?${queryString}`,
     })
-  } catch (error) {
-    console.error('Signing error:', error)
-    res.status(500).json({ error: 'Failed to sign transformation' })
-  }
-})
+  })
+)
 
 /**
  * POST /images/confirm
  * Metadata Sync: Saves the final S3 key to the local PostgreSQL database after a successful upload.
  */
-app.post('/images/confirm', async (req, res) => {
-  try {
+app.post(
+  '/images/confirm',
+  asyncHandler(async (req, res) => {
     const { key, name, type, size, path, secure } = req.body
     const result = await postgresService.addImage({ key, name, type, size, path, secure })
     res.json(result)
-  } catch (error) {
-    console.error('DB metadata sync error:', error)
-    res.status(500).json({ error: 'Failed to synchronize asset metadata' })
-  }
-})
+  })
+)
 
 /**
  * DELETE /images/:id
  * Resource Management: Deletes the asset from both the S3 storage and the database registry.
  */
-app.delete('/images/:id', async (req, res) => {
-  try {
+app.delete(
+  '/images/:id',
+  asyncHandler(async (req, res) => {
     const { id } = req.params
-    const image = await postgresService.getImageById(id)
-    if (!image) return res.status(404).json({ error: 'Asset not found in registry' })
+    const image = await postgresService.getImageById(id as string)
+    if (!image) throw new ApiError(404, 'Asset not found in registry')
 
     // A. Wipe from physical storage (S3)
-    await s3Service.deleteFile(image.key)
+    await s3Service.deleteFile(image.key as string)
     // B. Wipe from database registry (Postgres)
-    await postgresService.deleteImageById(id)
+    await postgresService.deleteImageById(id as string)
 
     res.json({ message: 'Resource permanently deleted' })
-  } catch (error) {
-    console.error('Deletion operation error:', error)
-    res.status(500).json({ error: 'Failed to decommission resource' })
-  }
-})
+  })
+)
 
-// 5. Final API Initialization
+// 5. Error Handling Middleware
+app.use(errorHandler)
+
+// 6. Final API Initialization
 app.listen(port, () => {
-  console.log(`\x1b[32m\x1b[1mSERVER LIVE\x1b[0m at http://localhost:${port}`)
+  logger.info(`SERVER LIVE at http://localhost:${port}`)
 })

@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import {
   LambdaClient,
   DeleteFunctionCommand,
@@ -39,12 +40,12 @@ const roleName = 'image-transformation-engine-role'
  * DB: Wipe all metadata
  */
 async function deleteTable() {
-  console.log('Emptying PostgreSQL registry table...')
+  logger.info('Emptying PostgreSQL registry table...')
   try {
     await postgresService.query('DROP TABLE IF EXISTS images')
-    console.log('Registry wiped.')
+    logger.info('Registry wiped.')
   } catch (e: any) {
-    console.error('Database Cleanup Error:', e.message)
+    logger.error('Database Cleanup Error:', e.message)
   }
 }
 
@@ -53,7 +54,7 @@ async function deleteTable() {
  */
 async function emptyAndDeleteBucket(bucketName: string) {
   try {
-    console.log(`Cleaning S3 storage: Bucket "${bucketName}"...`)
+    logger.info(`Cleaning S3 storage: Bucket "${bucketName}"...`)
     // --- 1. S3 buckets must be empty before deletion ---
     const listResult = await s3Client.send(new ListObjectsV2Command({ Bucket: bucketName }))
     if (listResult.Contents?.length) {
@@ -65,9 +66,9 @@ async function emptyAndDeleteBucket(bucketName: string) {
     }
     // --- 2. Safe deletion of the bucket itself ---
     await s3Client.send(new DeleteBucketCommand({ Bucket: bucketName }))
-    console.log(`Bucket "${bucketName}" decommissioned.`)
+    logger.info(`Bucket "${bucketName}" decommissioned.`)
   } catch (e: any) {
-    console.warn(`Bucket Error (${bucketName}):`, e.message)
+    logger.warn(`Bucket Error (${bucketName}):`, e.message)
   }
 }
 
@@ -75,12 +76,12 @@ async function emptyAndDeleteBucket(bucketName: string) {
  * Lambda: Remove the transformation engine
  */
 async function deleteLambda() {
-  console.log(`Decommissioning Lambda function "${functionName}"...`)
+  logger.info(`Decommissioning Lambda function "${functionName}"...`)
   try {
     await lambdaClient.send(new DeleteFunctionCommand({ FunctionName: functionName }))
-    console.log('Lambda deleted.')
+    logger.info('Lambda deleted.')
   } catch (e: any) {
-    console.warn('Lambda Cleanup Error:', e.message)
+    logger.warn('Lambda Cleanup Error:', e.message)
   }
 }
 
@@ -88,7 +89,7 @@ async function deleteLambda() {
  * IAM: Remove the automated role and detach policies
  */
 async function deleteRole() {
-  console.log(`Decommissioning IAM Role "${roleName}"...`)
+  logger.info(`Decommissioning IAM Role "${roleName}"...`)
   try {
     // --- 1. Policies must be detached before a role can be deleted ---
     const policies = await iamClient.send(new ListAttachedRolePoliciesCommand({ RoleName: roleName }))
@@ -99,19 +100,19 @@ async function deleteRole() {
     }
     // --- 2. Final deletion of the role instance ---
     await iamClient.send(new DeleteRoleCommand({ RoleName: roleName }))
-    console.log('IAM Role decommissioned.')
+    logger.info('IAM Role decommissioned.')
   } catch (e: any) {
-    console.warn('IAM Cleanup Error:', e.message)
+    logger.warn('IAM Cleanup Error:', e.message)
   }
 }
 
 async function resetAll() {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-  console.log('\n\x1b[31m\x1b[1m=== Global Infrastructure Decommissioner (Reset) ===\x1b[0m')
-  console.log('\x1b[33mWarning: This will permanently wipe all S3 assets and DB records.\x1b[0m')
+  logger.info('\n\x1b[31m\x1b[1m=== Global Infrastructure Decommissioner (Reset) ===\x1b[0m')
+  logger.info('\x1b[33mWarning: This will permanently wipe all S3 assets and DB records.\x1b[0m')
 
   // Skip CloudFront automated deletion as it takes ~20 minutes to disable
-  console.log(
+  logger.info(
     "\nNote: CloudFront distributions require manual 'Disable' and 20-min wait before deletion. Skipping automated CDN deletion."
   )
 
@@ -125,7 +126,7 @@ async function resetAll() {
   removeFromEnv(['AWS_LAMBDA_ROLE_ARN', 'AWS_LAMBDA_FUNCTION_URL', 'CLOUDFRONT_DISTRIBUTION_ID', 'CLOUDFRONT_DOMAIN'])
 
   await postgresService.close()
-  console.log('\n\x1b[32m\x1b[1mSUCCESS: Core Infrastructure wiped clean!\x1b[0m')
+  logger.info('\n\x1b[32m\x1b[1mSUCCESS: Core Infrastructure wiped clean!\x1b[0m')
 }
 
 resetAll()

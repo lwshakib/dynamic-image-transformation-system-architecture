@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import { LambdaClient, GetFunctionUrlConfigCommand, GetPolicyCommand } from '@aws-sdk/client-lambda'
 import { env } from '../../config/env'
 
@@ -12,20 +13,20 @@ const functionName = 'image-transformation-engine'
 
 async function check() {
   try {
-    console.log('Checking Function URL Config...')
+    logger.info('Checking Function URL Config...')
     const config = await lambdaClient.send(new GetFunctionUrlConfigCommand({ FunctionName: functionName }))
-    console.log('AuthType:', config.AuthType)
-    console.log('FunctionUrl:', config.FunctionUrl)
+    logger.info('AuthType:', config.AuthType)
+    logger.info('FunctionUrl:', config.FunctionUrl)
 
-    console.log('\nChecking Resource Policy...')
+    logger.info('\nChecking Resource Policy...')
     try {
       const policy = await lambdaClient.send(new GetPolicyCommand({ FunctionName: functionName }))
-      console.log('Policy Document:', JSON.stringify(JSON.parse(policy.Policy || '{}'), null, 2))
+      logger.info('Policy Document:', JSON.stringify(JSON.parse(policy.Policy || '{}'), null, 2))
     } catch (e: any) {
-      console.log('No policy found or error:', e.message)
+      logger.info('No policy found or error:', e.message)
     }
   } catch (e: any) {
-    console.error('Error:', e.message)
+    logger.error('Error:', e.message)
   }
 }
 

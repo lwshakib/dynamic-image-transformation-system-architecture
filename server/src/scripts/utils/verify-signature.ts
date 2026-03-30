@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import crypto from 'crypto'
 import { env } from '../../config/env'
 
@@ -10,7 +11,7 @@ const signableString = basePath // NO EXPIRY
 
 const signature = crypto.createHmac('sha256', SECRET).update(signableString).digest('hex').substring(0, 16)
 
-console.log('Path:', signableString)
-console.log('Expected Signature:', signature)
-console.log('Log Signature:', '3ceeb1b6d183197e')
+logger.info('Path:', signableString)
+logger.info('Expected Signature:', signature)
+logger.info('Log Signature:', '3ceeb1b6d183197e')
 

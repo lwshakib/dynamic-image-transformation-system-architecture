@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import crypto from 'crypto'
 import { env } from '../../config/env'
 
@@ -27,17 +28,17 @@ const expires = '1774697808'
 
 // 1. Server generates signature
 const sig = generateSignature(originalKeyFromDb, { e: expires })
-console.log('Server Generated Sig:', sig)
+logger.info('Server Generated Sig:', sig)
 
 // 2. CloudFront URL
 const viewerUrl = `https://cdn.com/cdn/secure/uploads/Kyoto%20in%20vintage.jpg?s=${sig}&e=${expires}`
-console.log('Viewer URL:', viewerUrl)
+logger.info('Viewer URL:', viewerUrl)
 
 // 3. CloudFront Function Rewrites
 const uri = '/cdn/secure/uploads/Kyoto%20in%20vintage.jpg'
 const originalImagePath = uri.replace('/cdn/', '')
 const rewrittenUri = '/cdn/' + originalImagePath + '/original'
-console.log('Rewritten URI:', rewrittenUri)
+logger.info('Rewritten URI:', rewrittenUri)
 
 // 4. Lambda Receives rawPath
 const rawPath = rewrittenUri
@@ -45,9 +46,9 @@ const rawPath = rewrittenUri
 // 5. Lambda extracts targetCacheKey
 let targetCacheKey = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath
 targetCacheKey = decodeURIComponent(targetCacheKey.replace(/\+/g, ' '))
-console.log('Lambda targetCacheKey:', targetCacheKey)
+logger.info('Lambda targetCacheKey:', targetCacheKey)
 
 // 6. Validation
 const isValid = validateSignature(targetCacheKey, sig, expires)
-console.log('Is Valid?', isValid)
+logger.info('Is Valid?', isValid)
 

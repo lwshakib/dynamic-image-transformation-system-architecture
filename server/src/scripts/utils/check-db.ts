@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import pg from 'pg'
 import { env } from '../../config/env'
 
@@ -7,7 +8,7 @@ async function checkDb() {
 
   try {
     const res = await client.query('SELECT * FROM images WHERE name LIKE $1', ['%Kyoto%'])
-    console.log(JSON.stringify(res.rows, null, 2))
+    logger.info(JSON.stringify(res.rows, null, 2))
   } finally {
     await client.end()
   }

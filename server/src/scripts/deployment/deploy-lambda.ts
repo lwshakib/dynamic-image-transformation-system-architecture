@@ -1,3 +1,4 @@
+import logger from '../../logger/winston.logger'
 import {
   LambdaClient,
   CreateFunctionCommand,
@@ -28,7 +29,7 @@ const roleName = 'image-transformation-engine-role'
 
 async function buildLambda() {
   const projectRoot = path.join(__dirname, '../../..')
-  console.log(`\x1b[36mCalling Lambda build automation...\x1b[0m`)
+  logger.info(`\x1b[36mCalling Lambda build automation...\x1b[0m`)
   execSync(`bun run lambda:build`, {
     cwd: projectRoot,
     stdio: 'inherit',
@@ -75,7 +76,7 @@ async function getOrCreateRole() {
           PolicyArn: 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
         })
       )
-      console.log('Waiting for IAM Role propagation (10s)...')
+      logger.info('Waiting for IAM Role propagation (10s)...')
       await new Promise((r) => setTimeout(r, 10000))
       updateEnvFile('AWS_LAMBDA_ROLE_ARN', roleArn)
       return roleArn
@@ -87,12 +88,12 @@ async function getOrCreateRole() {
 async function ensureFunctionUrl() {
   let functionUrl = ''
   try {
-    console.log('Checking for existing Function URL...')
+    logger.info('Checking for existing Function URL...')
     const response = await lambdaClient.send(new GetFunctionUrlConfigCommand({ FunctionName: functionName }))
 
     // --- CRITICAL FIX: Explicitly enforce NONE auth type if it was previously IAM ---
     if (response.AuthType !== 'NONE') {
-      console.log(`Correcting Function URL AuthType from ${response.AuthType} to NONE...`)
+      logger.info(`Correcting Function URL AuthType from ${response.AuthType} to NONE...`)
       const updateResponse = await lambdaClient.send(
         new UpdateFunctionUrlConfigCommand({
           FunctionName: functionName,
@@ -103,10 +104,10 @@ async function ensureFunctionUrl() {
     } else {
       functionUrl = response.FunctionUrl!
     }
-    console.log('Function URL verified:', functionUrl)
+    logger.info('Function URL verified:', functionUrl)
     updateEnvFile('AWS_LAMBDA_FUNCTION_URL', functionUrl)
   } catch (error: any) {
-    console.log('Creating new Function URL Config with NONE auth...')
+    logger.info('Creating new Function URL Config with NONE auth...')
     const createResponse = await lambdaClient.send(
       new CreateFunctionUrlConfigCommand({
         FunctionName: functionName,
@@ -119,7 +120,7 @@ async function ensureFunctionUrl() {
 
   // Always ensure the public invoke permission is attached (both InvokeFunctionUrl and InvokeFunction are required since 2025)
   try {
-    console.log('Ensuring Public InvokeURL Permission...')
+    logger.info('Ensuring Public InvokeURL Permission...')
     await lambdaClient.send(
       new AddPermissionCommand({
         FunctionName: functionName,
@@ -129,17 +130,17 @@ async function ensureFunctionUrl() {
         FunctionUrlAuthType: 'NONE',
       })
     )
-    console.log('InvokeURL permission verified.')
+    logger.info('InvokeURL permission verified.')
   } catch (error: any) {
     if (error.name === 'ResourceConflictException') {
-      console.log('InvokeURL permission already exists.')
+      logger.info('InvokeURL permission already exists.')
     } else {
-      console.warn('Permission Warning (InvokeURL):', error.message)
+      logger.warn('Permission Warning (InvokeURL):', error.message)
     }
   }
 
   try {
-    console.log('Ensuring Public InvokeFunction Permission (Required for URLs)...')
+    logger.info('Ensuring Public InvokeFunction Permission (Required for URLs)...')
     await lambdaClient.send(
       new AddPermissionCommand({
         FunctionName: functionName,
@@ -151,18 +152,18 @@ async function ensureFunctionUrl() {
         InvokedViaFunctionUrl: true,
       } as any)
     )
-    console.log('InvokeFunction permission verified.')
+    logger.info('InvokeFunction permission verified.')
   } catch (error: any) {
     if (error.name === 'ResourceConflictException') {
-      console.log('InvokeFunction permission already exists.')
+      logger.info('InvokeFunction permission already exists.')
     } else {
-      console.warn('Permission Warning (InvokeFunction):', error.message)
+      logger.warn('Permission Warning (InvokeFunction):', error.message)
     }
   }
 }
 
 async function run() {
-  console.log(`\n\x1b[35m\x1b[1m=== AWS Lambda Deployment CLI ===\x1b[0m`)
+  logger.info(`\n\x1b[35m\x1b[1m=== AWS Lambda Deployment CLI ===\x1b[0m`)
   try {
     await buildLambda()
     const roleArn = await getOrCreateRole()
@@ -175,11 +176,11 @@ async function run() {
     } catch {}
 
     if (exists) {
-      console.log(`Updating existing function logic for "${functionName}"...`)
+      logger.info(`Updating existing function logic for "${functionName}"...`)
       await lambdaClient.send(new UpdateFunctionCodeCommand({ FunctionName: functionName, ZipFile: zipBuffer }))
 
       // --- CRITICAL FIX: Wait for the code update to complete before updating configuration ---
-      console.log('Waiting for code update to stabilize...')
+      logger.info('Waiting for code update to stabilize...')
       let status = ''
       while (status !== 'Successful') {
         await new Promise((r) => setTimeout(r, 2000))
@@ -187,7 +188,7 @@ async function run() {
         status = res.Configuration?.LastUpdateStatus || ''
         process.stdout.write('.')
       }
-      console.log('\nCode update complete.')
+      logger.info('\nCode update complete.')
 
       // Also ensure the handler and environment are updated
       await lambdaClient.send(
@@ -205,7 +206,7 @@ async function run() {
         })
       )
     } else {
-      console.log(`Creating fresh Lambda function "${functionName}"...`)
+      logger.info(`Creating fresh Lambda function "${functionName}"...`)
       await lambdaClient.send(
         new CreateFunctionCommand({
           FunctionName: functionName,
@@ -228,9 +229,9 @@ async function run() {
     }
 
     await ensureFunctionUrl()
-    console.log(`\n\x1b[32m\x1b[1mSUCCESS: Operation for "${functionName}" complete!\x1b[0m`)
+    logger.info(`\n\x1b[32m\x1b[1mSUCCESS: Operation for "${functionName}" complete!\x1b[0m`)
   } catch (error: any) {
-    console.error(`\n\x1b[31mFATAL: Deployment error:\x1b[0m\n${error.message}`)
+    logger.error(`\n\x1b[31mFATAL: Deployment error:\x1b[0m\n${error.message}`)
     process.exit(1)
   }
 }
