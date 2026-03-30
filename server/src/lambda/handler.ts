@@ -30,7 +30,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     // Split the path to get original key and operations
-    const pathParts = rawPath.split('/').filter(p => p).map((p: string) => {
+    const pathParts = rawPath.split('/').filter((p: string) => p).map((p: string) => {
       try {
         return decodeURIComponent(p)
       } catch (e) {
