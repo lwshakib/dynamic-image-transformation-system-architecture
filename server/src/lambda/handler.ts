@@ -30,23 +30,34 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     // Split the path to get original key and operations
-    const pathParts = rawPath.split('/').map((p: string) => {
+    const pathParts = rawPath.split('/').filter(p => p).map((p: string) => {
       try {
         return decodeURIComponent(p)
       } catch (e) {
         return p
       }
     })
-    // e.g., ["", "cdn", "folder", "img with space.jpg", "format=webp,width=100"]
 
-    const operationsPrefix = pathParts.pop() || '' // "format=webp,width=300" or "original"
-
-    // Remove "cdn" from parts if it exists at the start
-    if (pathParts[1] === 'cdn') {
-      pathParts.splice(1, 1)
+    // Remove "cdn" from parts if it exists at the start (CloudFront standard)
+    if (pathParts[0] === 'cdn') {
+      pathParts.shift()
     }
 
-    const originalKey = pathParts.filter((p: string) => p).join('/') // "folder/img with space.jpg"
+    let originalKey = ''
+    let operationsPrefix = ''
+
+    const lastPart = pathParts[pathParts.length - 1] || ''
+    // Detect if the last segment is a transformation (contains k=v) or the keyword 'original'
+    const isTransform = lastPart.includes('=') || lastPart === 'original'
+
+    if (isTransform) {
+      operationsPrefix = pathParts.pop() || ''
+      originalKey = pathParts.join('/')
+    } else {
+      // Direct access: entire remaining path is the key, default to 'original' transformation
+      originalKey = pathParts.join('/')
+      operationsPrefix = 'original'
+    }
 
     if (!originalKey) {
       return {
