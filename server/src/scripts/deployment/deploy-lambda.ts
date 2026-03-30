@@ -201,6 +201,7 @@ async function run() {
               AWS_BUCKET_NAME_TRANSFORMED: env.AWS_BUCKET_NAME_TRANSFORMED,
               DATABASE_URL: env.DATABASE_URL,
               SIGNING_SECRET: env.SIGNING_SECRET,
+              NODE_ENV: env.NODE_ENV || 'production',
             },
           },
         })
@@ -222,6 +223,7 @@ async function run() {
               AWS_BUCKET_NAME_TRANSFORMED: env.AWS_BUCKET_NAME_TRANSFORMED,
               DATABASE_URL: env.DATABASE_URL,
               SIGNING_SECRET: env.SIGNING_SECRET,
+              NODE_ENV: env.NODE_ENV || 'production',
             },
           },
         })

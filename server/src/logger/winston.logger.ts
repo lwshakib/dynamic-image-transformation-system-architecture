@@ -40,22 +40,29 @@ const format = winston.format.combine(
   })
 );
 
+// Detect if we are running in AWS Lambda
+const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+
 // Configure transports
-const transports: winston.transport[] = [
-  new winston.transports.Console(),
-  new winston.transports.File({
-    filename: "logs/error.log",
-    level: "error",
-  }),
-  new winston.transports.File({
-    filename: "logs/info.log",
-    level: "info",
-  }),
-  new winston.transports.File({
-    filename: "logs/http.log",
-    level: "http",
-  }),
-];
+const transports: winston.transport[] = [new winston.transports.Console()];
+
+// Add file transports only if NOT in Lambda (to avoid read-only filesystem errors)
+if (!isLambda) {
+  transports.push(
+    new winston.transports.File({
+      filename: 'logs/error.log',
+      level: 'error',
+    }),
+    new winston.transports.File({
+      filename: 'logs/info.log',
+      level: 'info',
+    }),
+    new winston.transports.File({
+      filename: 'logs/http.log',
+      level: 'http',
+    })
+  )
+}
 
 // Create and export the logger
 const logger = winston.createLogger({

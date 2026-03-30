@@ -16,50 +16,44 @@ export const INFRA_PLACEHOLDERS = {
  * Centrally loads and validates all required environment variables.
  */
 
-// Load environment variables from the .env file in the root directory
-dotenv.config({ path: path.join(__dirname, '../.env') });
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    // Load environment variables from the .env file in the root directory (Local development only)
+    dotenv.config({ path: path.join(__dirname, '../.env') });
+}
 
-/**
- * Utility function to retrieve an environment variable.
- * @param key - The name of the environment variable (e.g., "AWS_REGION")
- * @param required - Whether the variable must be present (default: true)
- * @param defaultValue - Optional value to return if the variable is missing
- * @returns The value of the environment variable, the default value, or an empty string
- * @throws Error if a required variable is missing and no default is provided
- */
-function getEnv(key: string, required: boolean = true, defaultValue?: string): string {
+function getEnv(key: string, required: boolean = true, defaultValue?: string): string | undefined {
     const value = process.env[key];
     if (required && !value && defaultValue === undefined) {
         // Halt everything if a critical configuration is missing
         throw new Error(`❌ Missing required environment variable: ${key}`);
     }
-    return value || defaultValue || "";
+    return value || defaultValue;
 }
 
 // --- SERVER INSTANCE CONFIGURATION ---
-export const NODE_ENV = getEnv("NODE_ENV");
-export const PORT = parseInt(getEnv("PORT"), 10);
+export const NODE_ENV = getEnv("NODE_ENV", false, "development") as string;
+export const PORT = parseInt(getEnv("PORT", false, "3001") as string, 10);
 
 // --- AWS GLOBAL CONFIGURATION ---
-export const AWS_REGION = getEnv("AWS_REGION");
-export const AWS_ACCESS_KEY_ID = getEnv("AWS_ACCESS_KEY_ID");
-export const AWS_SECRET_ACCESS_KEY = getEnv("AWS_SECRET_ACCESS_KEY");
+export const AWS_REGION = getEnv("AWS_REGION", false, "ap-south-1") as string;
+export const AWS_ACCESS_KEY_ID = getEnv("AWS_ACCESS_KEY_ID", false);
+export const AWS_SECRET_ACCESS_KEY = getEnv("AWS_SECRET_ACCESS_KEY", false);
 
 // --- S3 BUCKET CONFIGURATION ---
-export const AWS_BUCKET_NAME_IMAGES = getEnv("AWS_BUCKET_NAME_IMAGES");
-export const AWS_BUCKET_NAME_TRANSFORMED = getEnv("AWS_BUCKET_NAME_TRANSFORMED");
+export const AWS_BUCKET_NAME_IMAGES = getEnv("AWS_BUCKET_NAME_IMAGES") as string;
+export const AWS_BUCKET_NAME_TRANSFORMED = getEnv("AWS_BUCKET_NAME_TRANSFORMED") as string;
 
 // --- DATABASE CONFIGURATION ---
-export const DATABASE_URL = getEnv("DATABASE_URL");
+export const DATABASE_URL = getEnv("DATABASE_URL") as string;
 
 // --- SECURITY CONFIGURATION ---
-export const SIGNING_SECRET = getEnv("SIGNING_SECRET");
+export const SIGNING_SECRET = getEnv("SIGNING_SECRET") as string;
 
 // --- AUTOMATED INFRASTRUCTURE ---
-export const AWS_LAMBDA_ROLE_ARN = getEnv("AWS_LAMBDA_ROLE_ARN");
-export const AWS_LAMBDA_FUNCTION_URL = getEnv("AWS_LAMBDA_FUNCTION_URL");
-export const CLOUDFRONT_DISTRIBUTION_ID = getEnv("CLOUDFRONT_DISTRIBUTION_ID");
-export const CLOUDFRONT_DOMAIN = getEnv("CLOUDFRONT_DOMAIN");
+export const AWS_LAMBDA_ROLE_ARN = getEnv("AWS_LAMBDA_ROLE_ARN", false);
+export const AWS_LAMBDA_FUNCTION_URL = getEnv("AWS_LAMBDA_FUNCTION_URL", false);
+export const CLOUDFRONT_DISTRIBUTION_ID = getEnv("CLOUDFRONT_DISTRIBUTION_ID", false);
+export const CLOUDFRONT_DOMAIN = getEnv("CLOUDFRONT_DOMAIN", false);
 
 // --- AGGREGATED EXPORT FOR BACKWARD COMPATIBILITY ---
 export const env = {
