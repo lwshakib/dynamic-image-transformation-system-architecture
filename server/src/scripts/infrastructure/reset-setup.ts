@@ -20,7 +20,7 @@ import {
 } from '@aws-sdk/client-cloudfront'
 import { postgresService } from '../../services/postgres.service'
 import { env } from '../../envs'
-import { removeFromEnv } from '../utils/env-utils'
+import { resetEnvFile, getAwsConfig } from '../utils/env-utils'
 import fs from 'fs'
 import path from 'path'
 
@@ -28,10 +28,10 @@ import path from 'path'
  * Global Architecture Decommissioner (Reset Tool)
  * Safely removes all provisioned resources to clear the environment.
  */
-const lambdaClient = new LambdaClient({ region: env.AWS_REGION })
-const iamClient = new IAMClient({ region: env.AWS_REGION })
-const s3Client = new S3Client({ region: env.AWS_REGION })
-const cloudFrontClient = new CloudFrontClient({ region: env.AWS_REGION })
+const lambdaClient = new LambdaClient(getAwsConfig())
+const iamClient = new IAMClient(getAwsConfig())
+const s3Client = new S3Client(getAwsConfig())
+const cloudFrontClient = new CloudFrontClient(getAwsConfig())
 
 const functionName = 'image-transformation-engine'
 const roleName = 'image-transformation-engine-role'
@@ -122,8 +122,8 @@ async function resetAll() {
   await deleteLambda()
   await deleteRole()
 
-  // Final scrub of environment variables
-  removeFromEnv(['AWS_LAMBDA_ROLE_ARN', 'AWS_LAMBDA_FUNCTION_URL', 'CLOUDFRONT_DISTRIBUTION_ID', 'CLOUDFRONT_DOMAIN'])
+  // Reset environment variables to placeholders
+  resetEnvFile(['AWS_LAMBDA_ROLE_ARN', 'AWS_LAMBDA_FUNCTION_URL', 'CLOUDFRONT_DISTRIBUTION_ID', 'CLOUDFRONT_DOMAIN'])
 
   await postgresService.close()
   logger.info('\n\x1b[32m\x1b[1mSUCCESS: Core Infrastructure wiped clean!\x1b[0m')

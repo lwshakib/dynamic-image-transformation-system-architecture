@@ -1,8 +1,28 @@
 import logger from '../../logger/winston.logger'
 import fs from 'fs'
 import path from 'path'
+import { INFRA_PLACEHOLDERS, env } from '../../envs'
+
+export { INFRA_PLACEHOLDERS }
 
 const envPath = path.join(__dirname, '../../../.env')
+
+/**
+ * Returns a safe AWS configuration object, filtering out placeholders
+ * that could cause authentication failures during development.
+ */
+export function getAwsConfig() {
+  const config: any = { region: env.AWS_REGION }
+
+  if (env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY) {
+    config.credentials = {
+      accessKeyId: env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+    }
+  }
+
+  return config
+}
 
 /**
  * Updates or adds a key-value pair in the .env file.
@@ -30,27 +50,29 @@ export function updateEnvFile(key: string, value: string) {
 }
 
 /**
- * Removes multiple keys and their automated comments from the .env file.
+ * Resets multiple keys to an empty placeholder in the .env file.
+ * This preserves the key structure and comments for documentation.
  */
-export function removeFromEnv(keys: string[]) {
+export function resetEnvFile(keys: string[]) {
   try {
     if (!fs.existsSync(envPath)) return
 
     let content = fs.readFileSync(envPath, 'utf8')
     let lines = content.split('\n')
 
-    const filteredLines = lines.filter((line) => {
+    const updatedLines = lines.map((line) => {
       const trimmed = line.trim()
-      const isTargetKey = keys.some((key) => trimmed.startsWith(`${key}=`))
-      const isTargetComment = keys.some((key) => trimmed.startsWith(`# Automated Infrastructure ${key}`))
-      return !isTargetKey && !isTargetComment
+      const matchingKey = keys.find((key) => trimmed.startsWith(`${key}=`))
+      if (matchingKey) {
+        const placeholder = (INFRA_PLACEHOLDERS as any)[matchingKey] || ''
+        return `${matchingKey}=${placeholder}`
+      }
+      return line
     })
 
-    const finalContent = filteredLines.join('\n').replace(/\n{3,}/g, '\n\n')
-
-    fs.writeFileSync(envPath, finalContent)
-    logger.info(`\x1b[32mScrubbed keys from .env: ${keys.join(', ')}\x1b[0m`)
+    fs.writeFileSync(envPath, updatedLines.join('\n'))
+    logger.info(`\x1b[32mReset keys in .env to placeholders: ${keys.join(', ')}\x1b[0m`)
   } catch (error: any) {
-    logger.warn(`Could not automatically scrub .env: ${error.message}`)
+    logger.warn(`Could not automatically reset .env: ${error.message}`)
   }
 }

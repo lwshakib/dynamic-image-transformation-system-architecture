@@ -2,6 +2,16 @@ import dotenv from "dotenv";
 import path from "path";
 
 /**
+ * Structured placeholders for automated infrastructure keys.
+ */
+export const INFRA_PLACEHOLDERS = {
+    AWS_LAMBDA_ROLE_ARN: 'arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME',
+    AWS_LAMBDA_FUNCTION_URL: 'https://FUNCTION_ID.lambda-url.REGION.on.aws/',
+    CLOUDFRONT_DISTRIBUTION_ID: 'DISTRIBUTION_ID',
+    CLOUDFRONT_DOMAIN: 'd111111abcdef8.cloudfront.net',
+} as const;
+
+/**
  * Environment Configuration Service (src/envs.ts)
  * Centrally loads and validates all required environment variables.
  */
@@ -17,7 +27,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
  * @returns The value of the environment variable, the default value, or an empty string
  * @throws Error if a required variable is missing and no default is provided
  */
-function getEnv(key: string, required: boolean = true, defaultValue?: string): string {
+function getEnv(key: string, required: boolean = false, defaultValue?: string): string {
     const value = process.env[key];
     if (required && !value && defaultValue === undefined) {
         // Halt everything if a critical configuration is missing
@@ -34,7 +44,6 @@ export const PORT = parseInt(getEnv("PORT"), 10);
 export const AWS_REGION = getEnv("AWS_REGION");
 export const AWS_ACCESS_KEY_ID = getEnv("AWS_ACCESS_KEY_ID");
 export const AWS_SECRET_ACCESS_KEY = getEnv("AWS_SECRET_ACCESS_KEY");
-export const AWS_SESSION_TOKEN = getEnv("AWS_SESSION_TOKEN");
 
 // --- S3 BUCKET CONFIGURATION ---
 export const AWS_BUCKET_NAME_IMAGES = getEnv("AWS_BUCKET_NAME_IMAGES");
@@ -59,7 +68,6 @@ export const env = {
     AWS_REGION,
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
-    AWS_SESSION_TOKEN,
     AWS_BUCKET_NAME_IMAGES,
     AWS_BUCKET_NAME_TRANSFORMED,
     DATABASE_URL,

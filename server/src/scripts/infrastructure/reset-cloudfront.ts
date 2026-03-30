@@ -1,9 +1,9 @@
 import logger from '../../logger/winston.logger'
 import { CloudFrontClient, GetDistributionCommand, UpdateDistributionCommand } from '@aws-sdk/client-cloudfront'
 import { env } from '../../envs'
-import { removeFromEnv } from '../utils/env-utils'
+import { resetEnvFile, getAwsConfig } from '../utils/env-utils'
 
-const cloudFrontClient = new CloudFrontClient({ region: env.AWS_REGION })
+const cloudFrontClient = new CloudFrontClient(getAwsConfig())
 
 async function run() {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
@@ -57,8 +57,8 @@ async function run() {
     logger.info("3. Wait until the status is 'Deployed' and the state is 'Disabled'.")
     logger.info("5. Once disabled, select it again and click 'Delete'.")
 
-    // Scrub keys from .env
-    removeFromEnv(['CLOUDFRONT_DISTRIBUTION_ID', 'CLOUDFRONT_DOMAIN'])
+    // Reset keys in .env
+    resetEnvFile(['CLOUDFRONT_DISTRIBUTION_ID', 'CLOUDFRONT_DOMAIN'])
   } catch (e: any) {
     logger.error('\x1b[31mCloudFront Reset Error:\x1b[0m', e.message)
   }

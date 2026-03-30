@@ -5,14 +5,9 @@ import path from 'path'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { env } from '../../envs'
 
-const s3Client = new S3Client({
-  region: env.AWS_REGION,
-  credentials: {
-    accessKeyId: env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: env.AWS_SECRET_ACCESS_KEY!,
-    sessionToken: env.AWS_SESSION_TOKEN,
-  },
-} as any)
+import { getAwsConfig } from './env-utils'
+
+const s3Client = new S3Client(getAwsConfig())
 
 async function testTransformation() {
   const imageName = 'A cinematic photo of a 2D cinematic illustration in 169 aspe.jpg'

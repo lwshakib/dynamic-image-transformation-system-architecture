@@ -2,14 +2,9 @@ import logger from '../../logger/winston.logger'
 import { CloudWatchLogsClient, DescribeLogStreamsCommand, GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs'
 import { env } from '../../envs'
 
-const cloudwatchClient = new CloudWatchLogsClient({
-  region: env.AWS_REGION,
-  credentials: {
-    accessKeyId: env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: env.AWS_SECRET_ACCESS_KEY!,
-    sessionToken: env.AWS_SESSION_TOKEN,
-  },
-} as any)
+import { getAwsConfig } from './env-utils'
+
+const cloudwatchClient = new CloudWatchLogsClient(getAwsConfig())
 const logGroupName = '/aws/lambda/image-transformation-engine'
 
 async function searchErrors() {

@@ -12,7 +12,7 @@ import {
 import { env } from '../../envs'
 import fs from 'fs'
 import path from 'path'
-import { updateEnvFile } from '../utils/env-utils'
+import { updateEnvFile, INFRA_PLACEHOLDERS, getAwsConfig } from '../utils/env-utils'
 
 /**
  * AWS CloudFront Distribution Provisioner (High-Performance Architecture)
@@ -21,7 +21,7 @@ import { updateEnvFile } from '../utils/env-utils'
  * 2. Origin Failover (S3 -> Lambda Generation)
  * 3. Cache Optimization for on-the-fly transformations.
  */
-const cloudFrontClient = new CloudFrontClient({ region: env.AWS_REGION })
+const cloudFrontClient = new CloudFrontClient(getAwsConfig())
 
 // Managed Policies
 const CACHE_POLICY_ID = '4135ea2d-6df8-44a3-9df3-4b5a84be39ad' // CachingOptimized (Includes QueryStrings)
@@ -29,7 +29,7 @@ const ORIGIN_REQUEST_POLICY_ID = 'b689b0a8-53d0-40ab-baf2-68738e2966ac' // AllVi
 
 async function setupCloudFrontFunction() {
   const functionName = 'UrlRewriteFunction'
-  const tsPath = path.join(__dirname, '../../../lambda/url-rewrite.ts')
+  const tsPath = path.join(__dirname, '../../lambda/url-rewrite.ts')
 
   if (!fs.existsSync(tsPath)) {
     throw new Error(`CloudFront Function source not found at ${tsPath}`)
@@ -176,8 +176,9 @@ async function run() {
     }))
 
     const distributionId = env.CLOUDFRONT_DISTRIBUTION_ID
+    const isPlaceholder = distributionId === INFRA_PLACEHOLDERS.CLOUDFRONT_DISTRIBUTION_ID
 
-    if (distributionId) {
+    if (distributionId && !isPlaceholder) {
       logger.info(`Updating existing Distribution: ${distributionId}...`)
       const { Distribution, ETag } = await cloudFrontClient.send(new GetDistributionCommand({ Id: distributionId }))
 

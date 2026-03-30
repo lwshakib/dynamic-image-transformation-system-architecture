@@ -16,14 +16,14 @@ import path from 'path'
 import archiver from 'archiver'
 import { execSync } from 'child_process'
 import { env } from '../../envs'
-import { updateEnvFile } from '../utils/env-utils'
+import { updateEnvFile, getAwsConfig } from '../utils/env-utils'
 
 /**
  * AWS Lambda Infrastructure Deployer
  * Automates the packaging and deployment of the on-the-fly engine to AWS.
  */
-const lambdaClient = new LambdaClient({ region: env.AWS_REGION })
-const iamClient = new IAMClient({ region: env.AWS_REGION })
+const lambdaClient = new LambdaClient(getAwsConfig())
+const iamClient = new IAMClient(getAwsConfig())
 const functionName = 'image-transformation-engine'
 const roleName = 'image-transformation-engine-role'
 

@@ -7,10 +7,10 @@ import {
   ListAttachedRolePoliciesCommand,
 } from '@aws-sdk/client-iam'
 import { env } from '../../envs'
-import { removeFromEnv } from '../utils/env-utils'
+import { resetEnvFile, getAwsConfig } from '../utils/env-utils'
 
-const lambdaClient = new LambdaClient({ region: env.AWS_REGION })
-const iamClient = new IAMClient({ region: env.AWS_REGION })
+const lambdaClient = new LambdaClient(getAwsConfig())
+const iamClient = new IAMClient(getAwsConfig())
 
 const functionName = 'image-transformation-engine'
 const roleName = 'image-transformation-engine-role'
@@ -47,8 +47,8 @@ async function run() {
   await deleteLambda()
   await deleteRole()
 
-  // Scrub keys from .env
-  removeFromEnv(['AWS_LAMBDA_ROLE_ARN', 'AWS_LAMBDA_FUNCTION_URL'])
+  // Reset keys in .env
+  resetEnvFile(['AWS_LAMBDA_ROLE_ARN', 'AWS_LAMBDA_FUNCTION_URL'])
 
   logger.info('\x1b[32m\x1b[1mSUCCESS: Lambda compute resources wiped clean!\x1b[0m')
 }
