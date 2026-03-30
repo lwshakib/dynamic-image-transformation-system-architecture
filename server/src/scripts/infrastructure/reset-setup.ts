@@ -18,7 +18,7 @@ import {
   GetDistributionCommand,
   UpdateDistributionCommand,
 } from '@aws-sdk/client-cloudfront'
-import { postgresService } from '../../services/postgres.service'
+import { postgresService } from '../../services/postgres.services'
 import { env } from '../../envs'
 import { resetEnvFile, getAwsConfig } from '../utils/env-utils'
 import fs from 'fs'

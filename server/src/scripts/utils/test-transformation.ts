@@ -1,5 +1,5 @@
 import logger from '../../logger/winston.logger'
-import { transformationService } from '../../services/transformation.service'
+import { transformationService } from '../../services/transformation.services'
 import fs from 'fs'
 import path from 'path'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'

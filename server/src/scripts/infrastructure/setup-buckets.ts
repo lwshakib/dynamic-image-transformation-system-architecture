@@ -1,5 +1,5 @@
 import logger from '../../logger/winston.logger'
-import { s3Service } from '../../services/s3.service'
+import { s3Service } from '../../services/s3.services'
 import { env } from '../../envs'
 
 /**

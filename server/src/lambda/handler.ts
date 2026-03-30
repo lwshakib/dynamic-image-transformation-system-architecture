@@ -1,5 +1,5 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-import { transformationService } from '../services/transformation.service'
+import { transformationService } from '../services/transformation.services'
 import logger from '../logger/winston.logger'
 
 /**

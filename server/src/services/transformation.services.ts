@@ -2,27 +2,22 @@ import sharp from 'sharp'
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { env } from '../envs'
 import { Readable } from 'stream'
+import { getAwsConfig } from '../scripts/utils/env-utils'
 import logger from '../logger/winston.logger'
 import { SecurityUtils } from '../utils/security'
 
 /**
- * Image Transformation Engine
+ * Image Transformation Services
  * Uses Sharp to perform high-performance image processing.
  * Manages an S3-based caching layer for processed assets.
  */
-const s3Client = new S3Client({
-  region: env.AWS_REGION,
-  ...(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY
-    ? {
-        credentials: {
-          accessKeyId: env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-        },
-      }
-    : {}),
-} as any)
+class TransformationServices {
+  private s3Client: S3Client
 
-export const transformationService = {
+  constructor() {
+    this.s3Client = new S3Client(getAwsConfig())
+  }
+
   /**
    * Transforms an image by original key and a target cache key.
    * Logic: Download -> Process -> Upload cache -> Return Buffer & Content Type.
@@ -39,7 +34,7 @@ export const transformationService = {
       Key: originalKey,
     })
 
-    const { Body, ContentType: originalContentType } = await s3Client.send(getCommand)
+    const { Body, ContentType: originalContentType } = await this.s3Client.send(getCommand)
     if (!Body) throw new Error('Could not fetch source image from S3.')
 
     // Security Check: If the original image is in the 'secure/' zone, we MUST have a valid signature
@@ -105,7 +100,6 @@ export const transformationService = {
     const resultBuffer = await transformer.toBuffer()
 
     // 3. Save the newly transformed image to the cache (transformed bucket)
-    // The key should match EXACTLY what CloudFront would request from S3
     const putCommand = new PutObjectCommand({
       Bucket: env.AWS_BUCKET_NAME_TRANSFORMED,
       Key: targetCacheKey,
@@ -113,15 +107,14 @@ export const transformationService = {
       ContentType: contentType,
       CacheControl: 'public, max-age=31536000', // 1 year cache for variants
     })
-    await s3Client.send(putCommand)
+    await this.s3Client.send(putCommand)
 
     logger.info(`Successfully transformed and cached at: ${targetCacheKey}`)
     return { buffer: resultBuffer, contentType }
-  },
+  }
 
   /**
    * Helper utility to convert a Node.js Readable stream to a Buffer.
-   * Necessary because Sharp works most efficiently with fully buffered data.
    */
   async streamToBuffer(stream: Readable): Promise<Buffer> {
     return new Promise((resolve, reject) => {
@@ -130,5 +123,7 @@ export const transformationService = {
       stream.on('end', () => resolve(Buffer.concat(chunks)))
       stream.on('error', (err) => reject(err))
     })
-  },
+  }
 }
+
+export const transformationService = new TransformationServices()

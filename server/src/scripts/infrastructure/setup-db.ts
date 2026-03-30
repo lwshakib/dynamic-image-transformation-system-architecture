@@ -1,5 +1,5 @@
 import logger from '../../logger/winston.logger'
-import { postgresService } from '../../services/postgres.service'
+import { postgresService } from '../../services/postgres.services'
 import { env } from '../../envs'
 import fs from 'fs'
 import path from 'path'
