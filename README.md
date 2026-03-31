@@ -2,6 +2,8 @@
 
 A professional-grade, serverless image transformation pipeline designed for high performance, edge caching, and a premium user experience.
 
+![Application Demo](./web/public/app_demo/app-demo.png)
+
 [![Architecture Guide](https://img.shields.io/badge/Architecture-Guide-blue)](./ARCHITECTURE.md)
 [![AWS Setup](https://img.shields.io/badge/AWS-Configuration-orange)](./AWS_CONFIGURATION.md)
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
