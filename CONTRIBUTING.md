@@ -11,27 +11,40 @@ This project uses a monorepo structure with a **Bun/Express** backend and a **Ne
 - Access to an AWS account (for infrastructure testing).
 - A local or remote PostgreSQL instance.
 
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/dynamic-image-transformation-system-architecture.git
-   cd dynamic-image-transformation-system-architecture
-   ```
-2. Install dependencies for both projects:
-   ```bash
-   cd server && bun install
-   cd ../web && bun install
-   ```
+## 🍴 How to Contribute
 
-## 🛠️ Development Workflow
+### 1. Fork the Repository
+First, [fork](https://github.com/lwshakib/dynamic-image-transformation-system-architecture/fork) the project to your own GitHub account.
 
-1. **Feature Branching**: Always create a new branch for your feature or bugfix.
-   `git checkout -b feature/your-feature-name`
-2. **Local Testing**:
-   - Ensure you have a `.env` file in the `server` directory.
-   - Run the backend: `bun run dev` (in `/server`).
-   - Run the frontend: `bun run dev` (in `/web`).
-3. **Drafting PRs**: Provide a clear description of the changes and a screenshot/recording if there are UI updates.
+### 2. Clone Your Fork
+Clone your fork locally and add the upstream remote for syncing:
+```bash
+git clone https://github.com/YOUR-USERNAME/dynamic-image-transformation-system-architecture.git
+cd dynamic-image-transformation-system-architecture
+
+# Add the main project as 'upstream'
+git remote add upstream https://github.com/lwshakib/dynamic-image-transformation-system-architecture.git
+```
+
+### 3. Create a Feature Branch
+Create a branch for your specific change:
+```bash
+git checkout -b feature/your-feature-name
+```
+
+### 4. Setup Development Environment
+Refer to the **[🛠️ Local Development & Setup](./README.md#️-local-development--setup)** section in the main README for full installation and infrastructure instructions.
+
+### 5. Commit and Push
+Ensure your commit messages follow a clear pattern (e.g., `feat: XYZ`, `fix: ABC`).
+```bash
+git add .
+git commit -m "feat: detailed description of changes"
+git push origin feature/your-feature-name
+```
+
+### 6. Open a Pull Request
+Go to the project's original repository and open a Pull Request (PR) from your feature branch. Be sure to link any related issues!
 
 ---
 

@@ -23,28 +23,50 @@ This project aims to provide an open-source, easily deployable alternative to co
 
 ---
 
-## 🚀 Quickstart
+## 🛠️ Local Development & Setup
 
-### 1. Provision Infrastructure
-Configure your `.env` in the `/server` directory and run:
+Follow these steps to get the project running locally for development and testing:
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/lwshakib/dynamic-image-transformation-system-architecture.git
+cd dynamic-image-transformation-system-architecture
+```
+
+### 2. Install Dependencies
+This project uses **Bun**. Install dependencies for both the backend and frontend:
+```bash
+# Root (if applicable) and Workspace modules
+cd server && bun install
+cd ../web && bun install
+```
+
+### 3. Environment Configuration
+Create a `.env` file in both the `/server` and `/web` directories using the provided templates:
+- **Server**: Copy `server/.env.example` to `server/.env` and add your AWS credentials and database URI.
+- **Web**: Copy `web/.env.example` to `web/.env` and update the `NEXT_PUBLIC_API_URL` if necessary.
+
+### 4. Infrastructure Provisioning
+Before running the services, you must provision the AWS resources (S3, CloudFront, Lambda):
 ```bash
 cd server
 bun run infra:setup
 ```
-*Wait ~15 minutes for CloudFront propagation.*
+*Note: CloudFront propagation can take up to 15-20 minutes.*
 
-### 2. Run the Services
-**Start the Proxy Server:**
+### 5. Start the Services
+**Proxy API Server:**
 ```bash
 cd server
 bun run dev
 ```
 
-**Start the Dashboard:**
+**Dashboard Application:**
 ```bash
 cd web
 bun run dev
 ```
+Access the dashboard at `http://localhost:3000`.
 
 ---
 
