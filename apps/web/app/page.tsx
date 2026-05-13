@@ -1,19 +1,133 @@
-import { Button } from "@workspace/ui/components/button"
+"use client"
 
-export default function Page() {
+import React, { useState, useEffect, useCallback } from "react"
+import { ImageUploader } from "@/components/image-uploader"
+import { ImageList } from "@/components/image-list"
+import { Toaster, toast } from "sonner"
+import { Switch } from "@workspace/ui/components/switch"
+import axios from "axios"
+
+/**
+ * Image Transformation Dashboard (Main Page)
+ * Provides a unified interface for uploading and managing transformed images.
+ */
+interface UploadedImage {
+  id: string
+  name: string
+  path: string
+  secure: boolean
+  key: string
+  distributionBase: string
+  signature?: string
+  expires?: string
+}
+
+export default function Home() {
+  const [images, setImages] = useState<UploadedImage[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSecureMode, setIsSecureMode] = useState(false)
+
+  /**
+   * Data Layer: Fetch all images from the backend registry.
+   */
+  const fetchImages = useCallback(async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+      setIsLoading(true)
+      const { data } = await axios.get(`${API_URL}/images`)
+      setImages(data)
+    } catch (error) {
+      console.error("Data Sync Error:", error)
+      toast.error("Cloud Gallery sync failed.")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // Initial Sync
+  useEffect(() => {
+    fetchImages()
+  }, [fetchImages])
+
+  /**
+   * Action Layer: Remove an image permanently.
+   */
+  const handleDelete = async (id: string) => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+      await axios.delete(`${API_URL}/images/${id}`)
+      // Optimistically update the UI by filtering out the deleted ID
+      setImages((prev) => prev.filter((img) => img.id !== id))
+      toast.info("Image decommissioned.")
+    } catch (error) {
+      console.error("Delete Task Error:", error)
+      toast.error("Failed to delete the asset.")
+    }
+  }
+
+  /**
+   * Action Layer: Toggle Security Mode
+   */
+  const handleSecurityToggle = (checked: boolean) => {
+    setIsSecureMode(checked)
+    if (checked) {
+      toast.success("Total Security Enabled: Cryptographic signing active.")
+    } else {
+      toast.warning("Security Relaxed: Path-only validation active.")
+    }
+  }
+
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
+    <main className="container mx-auto min-h-screen max-w-3xl space-y-12 p-4 md:p-16">
+      {/* 1. Page Header (Modern Minimalist Title) */}
+      <header className="space-y-2 border-b pb-6">
+        <h1 className="text-2xl font-bold tracking-tight">
+          Image Transformation
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Upload and test dynamic edge assets.
+        </p>
+      </header>
+
+      {/* 2. System Security Control (Simplified) */}
+      <section className="flex items-center justify-between border-b border-primary/5 px-2 py-4">
+        <div className="space-y-0.5">
+          <h3 className="text-sm font-medium">Security</h3>
+          <p className="text-[11px] text-muted-foreground">
+            {isSecureMode
+              ? "Cryptographic signing enabled"
+              : "Standard path validation"}
+          </p>
         </div>
-        <div className="text-muted-foreground font-mono text-xs">
-          (Press <kbd>d</kbd> to toggle dark mode)
+        <Switch
+          checked={isSecureMode}
+          onCheckedChange={handleSecurityToggle}
+          size="sm"
+        />
+      </section>
+
+      {/* 3. Drag-and-Drop Ingest Interface */}
+      <section className="space-y-4">
+        <ImageUploader onSuccess={fetchImages} isSecure={isSecureMode} />
+      </section>
+
+      {/* 3. Global Distribution Gallery */}
+      <section className="space-y-4 pt-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Asset Distribution
+          </h2>
+          {isLoading && (
+            <span className="animate-pulse text-xs text-muted-foreground">
+              Syncing...
+            </span>
+          )}
         </div>
-      </div>
-    </div>
+        <ImageList images={images} onDelete={handleDelete} />
+      </section>
+
+      {/* Notification Layer for user feedback */}
+      <Toaster position="bottom-right" richColors theme="dark" />
+    </main>
   )
 }
