@@ -32,7 +32,7 @@ function getEnv(key: string, required: boolean = true, defaultValue?: string): s
 
 // --- SERVER INSTANCE CONFIGURATION ---
 export const NODE_ENV = getEnv("NODE_ENV", false, "development") as string;
-export const PORT = parseInt(getEnv("PORT", false, "3001") as string, 10);
+export const PORT = parseInt(getEnv("PORT", false, "4000") as string, 10);
 
 // --- AWS GLOBAL CONFIGURATION ---
 export const AWS_REGION = getEnv("AWS_REGION", false, "ap-south-1") as string;

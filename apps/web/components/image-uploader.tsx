@@ -35,7 +35,7 @@ export function ImageUploader({
       if (!file) return
 
       // Use environment-based API URL or local default
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
 
       try {
         setIsUploading(true)

@@ -32,7 +32,7 @@ export default function Home() {
    */
   const fetchImages = useCallback(async () => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
       setIsLoading(true)
       const { data } = await axios.get(`${API_URL}/images`)
       setImages(data)
@@ -54,7 +54,7 @@ export default function Home() {
    */
   const handleDelete = async (id: string) => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
       await axios.delete(`${API_URL}/images/${id}`)
       // Optimistically update the UI by filtering out the deleted ID
       setImages((prev) => prev.filter((img) => img.id !== id))

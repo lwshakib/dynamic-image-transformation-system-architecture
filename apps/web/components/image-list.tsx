@@ -74,7 +74,7 @@ export function ImageList({ images, onDelete }: ImageListProps) {
 
     try {
       setIsSigning(true)
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
       const { data } = await axios.get(
         `${API_URL}/images/${selectedImage.id}/sign`,
         {
