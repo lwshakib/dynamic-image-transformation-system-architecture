@@ -1,6 +1,0 @@
-node_modules
-dist
-lambda-build
-*.log
-.env
-.DS_Store
