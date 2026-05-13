@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import "./globals.css"
+import "@workspace/ui/styles/globals.css"
 import { Toaster } from "@workspace/ui/components/sonner"
 import { TooltipProvider } from "@workspace/ui/components/tooltip"
 
