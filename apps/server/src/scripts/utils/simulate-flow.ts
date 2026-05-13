@@ -51,4 +51,3 @@ logger.info('Lambda targetCacheKey:', targetCacheKey)
 // 6. Validation
 const isValid = validateSignature(targetCacheKey, sig, expires)
 logger.info('Is Valid?', isValid)
-

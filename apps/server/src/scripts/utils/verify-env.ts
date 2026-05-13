@@ -6,4 +6,3 @@ logger.info(
   env.SIGNING_SECRET === 'placeholder-change-me-for-security' ? 'DEFAULT' : 'LOADED'
 )
 logger.info('Secret value (start):', env.SIGNING_SECRET.substring(0, 5))
-

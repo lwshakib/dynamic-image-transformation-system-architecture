@@ -1,4 +1,4 @@
-import winston from "winston";
+import winston from 'winston'
 
 // Define custom severity levels
 const levels = {
@@ -7,44 +7,44 @@ const levels = {
   info: 2,
   http: 3,
   debug: 4,
-} as const;
+} as const
 
-type LogLevel = keyof typeof levels;
+type LogLevel = keyof typeof levels
 
 // Select log level based on environment
 const level = (): LogLevel => {
-  const env = process.env.NODE_ENV ?? "development";
-  const isDevelopment = env === "development";
-  return isDevelopment ? "debug" : "warn";
-};
+  const env = process.env.NODE_ENV ?? 'development'
+  const isDevelopment = env === 'development'
+  return isDevelopment ? 'debug' : 'warn'
+}
 
 // Define colors for each log level
 const colors: Record<LogLevel, string> = {
-  error: "red",
-  warn: "yellow",
-  info: "blue",
-  http: "magenta",
-  debug: "white",
-};
+  error: 'red',
+  warn: 'yellow',
+  info: 'blue',
+  http: 'magenta',
+  debug: 'white',
+}
 
 // Link colors to Winston levels
-winston.addColors(colors);
+winston.addColors(colors)
 
 // Customize log format
 const format = winston.format.combine(
-  winston.format.timestamp({ format: "DD MMM, YYYY - HH:mm:ss:ms" }),
+  winston.format.timestamp({ format: 'DD MMM, YYYY - HH:mm:ss:ms' }),
   winston.format.colorize({ all: true }),
   winston.format.printf((info: winston.Logform.TransformableInfo) => {
-    const { timestamp, level, message } = info;
-    return `[${timestamp}] ${level}: ${String(message)}`;
+    const { timestamp, level, message } = info
+    return `[${timestamp}] ${level}: ${String(message)}`
   })
-);
+)
 
 // Detect if we are running in AWS Lambda
-const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME
 
 // Configure transports
-const transports: winston.transport[] = [new winston.transports.Console()];
+const transports: winston.transport[] = [new winston.transports.Console()]
 
 // Add file transports only if NOT in Lambda (to avoid read-only filesystem errors)
 if (!isLambda) {
@@ -70,6 +70,6 @@ const logger = winston.createLogger({
   levels,
   format,
   transports,
-});
+})
 
-export default logger;
+export default logger

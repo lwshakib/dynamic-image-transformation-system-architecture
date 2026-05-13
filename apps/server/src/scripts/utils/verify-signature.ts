@@ -14,4 +14,3 @@ const signature = crypto.createHmac('sha256', SECRET).update(signableString).dig
 logger.info('Path:', signableString)
 logger.info('Expected Signature:', signature)
 logger.info('Log Signature:', '3ceeb1b6d183197e')
-

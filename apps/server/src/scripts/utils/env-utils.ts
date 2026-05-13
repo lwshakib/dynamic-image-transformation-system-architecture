@@ -13,10 +13,10 @@ const envPath = path.join(__dirname, '../../../.env')
  */
 export function getAwsConfig() {
   const config: any = { region: env.AWS_REGION }
-  
+
   // Directly use process.env to avoid build-time inlining issues
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
 
   if (accessKeyId && secretAccessKey && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
     console.log(`[CONFIG] Using explicit AWS credentials from environment`)

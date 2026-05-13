@@ -56,8 +56,9 @@ export async function buildLambda() {
 }
 
 // Execute if run directly
-import { fileURLToPath } from 'url';
-const isMain = process.argv[1] && (process.argv[1].endsWith('build-lambda.ts') || process.argv[1].endsWith('build-lambda.js'));
+import { fileURLToPath } from 'url'
+const isMain =
+  process.argv[1] && (process.argv[1].endsWith('build-lambda.ts') || process.argv[1].endsWith('build-lambda.js'))
 
 if (isMain) {
   buildLambda().catch((err) => {

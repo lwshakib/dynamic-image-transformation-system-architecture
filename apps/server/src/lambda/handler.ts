@@ -30,13 +30,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     // Split the path to get original key and operations
-    const pathParts = rawPath.split('/').filter((p: string) => p).map((p: string) => {
-      try {
-        return decodeURIComponent(p)
-      } catch (e) {
-        return p
-      }
-    })
+    const pathParts = rawPath
+      .split('/')
+      .filter((p: string) => p)
+      .map((p: string) => {
+        try {
+          return decodeURIComponent(p)
+        } catch (e) {
+          return p
+        }
+      })
 
     // Remove "cdn" from parts if it exists at the start (CloudFront standard)
     if (pathParts[0] === 'cdn') {
