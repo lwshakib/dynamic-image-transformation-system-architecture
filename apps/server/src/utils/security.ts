@@ -18,7 +18,7 @@ export class SecurityUtils {
   ): string {
     const normalizedPath = this.getNormalizedPath(imagePath, params)
 
-    return crypto.createHmac('sha256', this.SECRET).update(normalizedPath).digest('hex').substring(0, 16) // Short signature for cleaner URLs
+    return crypto.createHmac('sha256', this.SECRET).update(normalizedPath).digest('hex')
   }
 
   /**
@@ -30,7 +30,7 @@ export class SecurityUtils {
     // Construct the full string used for signing (path + expiry if present)
     const signableString = expiry ? `${targetPathBase}?e=${expiry}` : targetPathBase
 
-    const expected = crypto.createHmac('sha256', this.SECRET).update(signableString).digest('hex').substring(0, 16)
+    const expected = crypto.createHmac('sha256', this.SECRET).update(signableString).digest('hex')
 
     // Security: Use timingSafeEqual to prevent timing attacks
     // REQUIREMENT: Buffers MUST have identical length
